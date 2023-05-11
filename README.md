@@ -1,0 +1,2 @@
+# aux.nvim
+Okie dokes.
