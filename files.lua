@@ -26,7 +26,13 @@ local json = require("_json")
 package.path = old_package_path
 
 
-local is_windows = package.config:sub(1, 1) == '\\'
+local is_windows = (function()
+  local is_ok, has_win = pcall(vim.fn.has, "win32")
+  if is_ok then
+    return has_win > 0
+  end
+  return package.config:sub(1, 1) == '\\'
+end)()
 
 
 local function dirname(filename)

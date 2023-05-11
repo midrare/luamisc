@@ -4,8 +4,15 @@ local moduleroot = modulename:gsub("(.+)%..+", "%1")
 
 local module = {}
 
-local is_windows = vim.fn.has("win32") > 0
-local path_sep = vim.fn.has("win32") > 0 and "\\" or "/"
+
+local is_windows = (function()
+  local is_ok, has_win = pcall(vim.fn.has, "win32")
+  if is_ok then
+    return has_win > 0
+  end
+  return package.config:sub(1, 1) == '\\'
+end)()
+
 
 local function _exec(cmd)
   local status_ok, pipe = pcall(io.popen, cmd)
