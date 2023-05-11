@@ -1,2 +1,2 @@
-# aux.nvim
-Okie dokes.
+# luamisc
+Nothing to see here.
