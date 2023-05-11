@@ -4,8 +4,10 @@ local moduleroot = modulename:gsub("(.+)%..+", "%1")
 
 local module = {}
 
+local vimfn = (vim or {}).fn or {}
+
 local is_windows = (function()
-  local is_ok, has_win = pcall(vim.fn.has, "win32")
+  local is_ok, has_win = pcall(vimfn.has, "win32")
   if is_ok then
     return has_win > 0
   end

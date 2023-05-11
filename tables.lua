@@ -15,6 +15,16 @@ local function is_array(o)
 end
 
 
+local function array_contains(arr, value)
+  for _, val in pairs(arr) do
+    if val == value then
+      return true
+    end
+  end
+  return false
+end
+
+
 function module.clone(tbl, deep)
   local target = {}
 
@@ -42,7 +52,7 @@ function module.merge(dest, src, opts)
   if src ~= nil then
     if is_array(src) and is_array(dest) then
       for _, value in ipairs(src) do
-        if not opts.unique or not vim.tbl_contains(dest, value) then
+        if not opts.unique or not array_contains(dest, value) then
           table.insert(dest, value)
         end
       end
