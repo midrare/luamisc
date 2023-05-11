@@ -11,10 +11,8 @@ local is_windows = (function()
   if is_ok then
     return has_win > 0
   end
-  return package.config:sub(1, 1) == '\\'
+  return package.config:sub(1, 1) == "\\"
 end)()
-
-
 
 local function _exec(cmd)
   local status_ok, pipe = pcall(io.popen, cmd)
@@ -33,14 +31,8 @@ local function _to_lines(s)
 
   while s and #s > 0 do
     local eol, _ = s:find("\n", 1, true)
-
-    local line = s
-    if eol then
-      s:sub(1, eol)
-      s = s:sub(eol + 1)
-    else
-      s = ""
-    end
+    local line = eol and s:sub(1, eol)
+    s = eol and s:sub(eol + 1) or ''
 
     line = line:gsub("[%s\r\n]+$", "")
     table.insert(lines, line)
@@ -90,7 +82,6 @@ function module.nvim_version()
   return nil
 end
 
-
 ---@package
 ---@alias regval { type: string, value: number|string }
 
@@ -118,7 +109,9 @@ function module.read_winreg(key)
 
   -- skip prelude
   while
-    lines[1]
+    lines
+    and #lines > 0
+    and lines[1]
     and (lines[1]:match("^[%s\r\n]*$") or lines[1]:match("^[^%s\r\n]"))
   do
     table.remove(lines, 1)
