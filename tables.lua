@@ -51,8 +51,19 @@ function module.merge(dest, src, opts)
 
   if src ~= nil then
     if is_array(src) and is_array(dest) then
-      for _, value in ipairs(src) do
-        if not opts.unique or not array_contains(dest, value) then
+      if opts.unique then
+        local seen = {}
+        for _, value in ipairs(dest) do
+          seen[value] = true
+        end
+        for _, value in ipairs(src) do
+          if not seen[value] then
+            table.insert(dest, value)
+            seen[value] = true
+          end
+        end
+      else
+        for _, value in ipairs(src) do
           table.insert(dest, value)
         end
       end
