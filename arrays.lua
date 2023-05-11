@@ -124,6 +124,18 @@ local function _cloned(o, deep)
 end
 
 
+function module.is_array(o)
+  if type(o) ~= "table" then
+    return false
+  end
+  local max_idx = 0
+  for i, _ in pairs(o) do
+    max_idx = i
+  end
+  return max_idx == #o
+end
+
+
 ---@param items any[] array to read from
 ---@param start? integer start index
 ---@param stop? integer stop index (inclusive)
