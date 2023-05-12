@@ -22,7 +22,7 @@ end
 
 local old_package_path = package.path
 package.path = get_script_dir() .. "/?.lua"
-local json = require("_json")
+local json = require("json")
 package.path = old_package_path
 
 local vimfn = (vim or {}).fn or {}

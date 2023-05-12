@@ -25,7 +25,6 @@
 --exclude=*/release/*
 --exclude=*/vcpkg/*
 --exclude=*/vcpkg_installed/*
---exclude=*/_json.lua
 --exclude=*/json.lua
 --exclude=*/date.lua
 --exclude=*/yaml.lua

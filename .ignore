@@ -1,2 +1,4 @@
-/target
 /.hookspace
+/date.lua
+/json.lua
+/yaml.lua
