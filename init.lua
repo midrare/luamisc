@@ -22,6 +22,7 @@ end
 local old_package_path = package.path
 package.path = get_script_dir() .. "/?.lua"
 module.arrays = require("arrays")
+module.date = require("date")
 module.files = require("files")
 module.paths = require("paths")
 module.platform = require("platform")
