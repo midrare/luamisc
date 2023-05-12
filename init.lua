@@ -27,6 +27,7 @@ module.files = require("files")
 module.paths = require("paths")
 module.platform = require("platform")
 module.tables = require("tables")
+module.yaml = require("yaml")
 package.path = old_package_path
 
 return module
