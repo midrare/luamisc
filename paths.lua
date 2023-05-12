@@ -1,8 +1,5 @@
-local modulename, _ = ...
----@diagnostic disable-next-line: unused-local
-local moduleroot = modulename:gsub("(.+)%..+", "%1")
-
-local module = {}
+local module, _ = {}, nil
+module.name, _ = ...
 
 local vimfn = (vim or {}).fn or {}
 
@@ -14,6 +11,34 @@ local is_windows = (function()
   return package.config:sub(1, 1) == '\\'
 end)()
 local path_sep = is_windows and '\\' or '/'
+
+
+local function get_cwd()
+  local cwd = vimfn.getcwd and vimfn.getcwd(-1, -1) or nil
+  if cwd then
+    cwd = cwd:gsub("[\\/]+$", ""):gsub("[\\/]", "/")
+    return cwd
+  end
+
+  local pwd_cmd = is_windows and "echo %cd%" or "pwd"
+  local pipe = io.popen(pwd_cmd)
+  cwd = pipe and pipe:read("*l")
+  if pipe then
+    pipe:close()
+  end
+
+  cwd = cwd:gsub("[\\/]+$", ""):gsub("[\\/]", "/")
+  return cwd
+end
+
+
+local function split_path(s)
+  local parts = {}
+  s:gsub('[^\\/]+', function(e)
+    table.insert(parts, e)
+  end)
+  return parts
+end
 
 
 ---@return string sep os-specific path separator
@@ -173,6 +198,41 @@ function module.join(...)
   end
 
   return joined
+end
+
+---@param filename string file path to make relative
+---@param origin? string dir to make relative against
+---@param inscase? boolean true if ignore case
+---@return string relpath
+function module.relpath(filename, origin, inscase)
+  if inscase == nil then inscase = is_windows end
+  origin = origin or get_cwd()
+  origin = module.normcase(origin)
+  filename = module.abspath(filename, origin)
+
+  local origin_segs = split_path(origin)
+  local path_segs = split_path(filename)
+
+  local mismatch_idx = math.min(#origin_segs, #path_segs) + 1
+  for i = 1, math.min(#origin_segs, #path_segs) do
+    if (not inscase and origin_segs[i] ~= path_segs[i])
+      or (inscase and origin_segs[i]:lower() ~= path_segs[i]:lower()) then
+      mismatch_idx = i
+      break
+    end
+  end
+
+  local components = {}
+  ---@diagnostic disable-next-line: unused-local
+  for i = 1, #origin_segs - mismatch_idx + 1 do
+    table.insert(components, '..')
+  end
+
+  for i = mismatch_idx, #path_segs do
+    table.insert(components, path_segs[i])
+  end
+
+  return table.concat(components, path_sep)
 end
 
 return module
