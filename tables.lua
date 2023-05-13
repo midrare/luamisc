@@ -43,7 +43,7 @@ function module.clone(tbl, deep)
 end
 
 
-function module.merge(dest, src, opts)
+function module.merge(src, dest, opts)
   assert(type(dest) == 'table', 'destination must be a table (array ok)')
   assert(src == nil or type(src) == 'table', 'source must be a table (nil ok)')
 
@@ -70,7 +70,7 @@ function module.merge(dest, src, opts)
     else
       for key, value in pairs(src) do
         if type(value) == 'table' and type(dest[key]) == 'table' then
-          module.merge(dest[key], value)
+          module.merge(value, dest[key])
         elseif dest[key] == nil or (opts.force == nil or opts.force) then
           dest[key] = value
         end
