@@ -282,4 +282,14 @@ function module.transform(items, f)
 end
 
 
+---@param items any[] items to remove from
+---@param value any value to remove
+---@param invert? boolean true to reverse behavior
+function module.remove(items, value, invert)
+  _del_if(items, nil, function(o)
+    return o == value
+  end, invert)
+end
+
+
 return module
