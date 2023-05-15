@@ -147,6 +147,38 @@ function module.overwrite(src, target)
 end
 
 
+local function _flat_append(dest, o, key)
+  if type(o) == "table" then
+    local keys = {}
+
+    for k, _ in pairs(o) do
+      table.insert(keys, k)
+    end
+
+    table.sort(keys)
+    for _, k in ipairs(keys) do
+      _flat_append(dest, o[k], k)
+    end
+  elseif key and type(key) ~= "number" then
+    dest[key] = o
+  else
+    table.insert(dest, o)
+  end
+end
+
+
+function module.flattened(...)
+  local o = {}
+  for i = 1, select('#', ...) do
+    table.insert(o, select(i, ...))
+  end
+
+  local flat = {}
+  _flat_append(flat, o, nil)
+  return flat
+end
+
+
 function module.tostring(o)
   local type_ = type(o)
   if type_ == 'string' then
