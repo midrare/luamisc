@@ -48,13 +48,10 @@ function module.sep()
 end
 
 ---@param filename string file path
----@return string? basename last component of file path
+---@return string basename last component of file path
 ---@nodiscard
 function module.basename(filename)
   local bname, _ = filename:gsub('^.*[\\/](.+)[\\/]*', '%1')
-  if not bname or #bname <= 0 then
-    return nil
-  end
   return bname
 end
 
