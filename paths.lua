@@ -233,4 +233,18 @@ function module.relpath(filename, origin, inscase)
   return table.concat(components, path_sep)
 end
 
+
+---@param ext string file extension
+---@return string? ext canonicalized file extension
+function module.canonical_ext(ext)
+  if not ext then
+    return nil
+  end
+  ext = ext:gsub("^[%s%.]+", ""):gsub("%s+$", "")
+  if #ext <= 0 then
+    return nil
+  end
+  return "." .. ext:lower()
+end
+
 return module
