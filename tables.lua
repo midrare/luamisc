@@ -137,22 +137,22 @@ function module.overwrite(src, target)
   overwrite(src, target)
 end
 
-local function _flat_append(dest, o, key)
-  if type(o) == "table" then
+local function _flat_append(dest, key, value)
+  if type(value) == "table" then
     local keys = {}
 
-    for k, _ in pairs(o) do
+    for k, _ in pairs(value) do
       table.insert(keys, k)
     end
 
     table.sort(keys)
     for _, k in ipairs(keys) do
-      _flat_append(dest, o[k], k)
+      _flat_append(dest, k, value[k])
     end
   elseif key and type(key) ~= "number" then
-    dest[key] = o
-  else
-    table.insert(dest, o)
+    dest[key] = value
+  elseif value ~= nil then
+    table.insert(dest, value)
   end
 end
 
@@ -163,7 +163,7 @@ function module.flattened(...)
   end
 
   local flat = {}
-  _flat_append(flat, o, nil)
+  _flat_append(flat, nil, o)
   return flat
 end
 
