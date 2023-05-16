@@ -6,14 +6,13 @@ local module = {}
 
 local function is_array(o)
   for key, _ in pairs(o) do
-    if type(key) ~= 'number' then
+    if type(key) ~= "number" then
       return false
     end
   end
 
   return true
 end
-
 
 local function array_contains(arr, value)
   for _, val in pairs(arr) do
@@ -24,12 +23,11 @@ local function array_contains(arr, value)
   return false
 end
 
-
 function module.clone(tbl, deep)
   local target = {}
 
   for k, v in pairs(tbl) do
-    if deep and type(v) == 'table' then
+    if deep and type(v) == "table" then
       target[k] = module.clone(v, deep)
     else
       target[k] = v
@@ -42,10 +40,9 @@ function module.clone(tbl, deep)
   return target
 end
 
-
 function module.merge(src, dest, opts)
-  assert(type(dest) == 'table', 'destination must be a table (array ok)')
-  assert(src == nil or type(src) == 'table', 'source must be a table (nil ok)')
+  assert(type(dest) == "table", "destination must be a table (array ok)")
+  assert(src == nil or type(src) == "table", "source must be a table (nil ok)")
 
   opts = opts or {}
 
@@ -69,7 +66,7 @@ function module.merge(src, dest, opts)
       end
     else
       for key, value in pairs(src) do
-        if type(value) == 'table' and type(dest[key]) == 'table' then
+        if type(value) == "table" and type(dest[key]) == "table" then
           module.merge(value, dest[key])
         elseif dest[key] == nil or (opts.force == nil or opts.force) then
           dest[key] = value
@@ -78,7 +75,6 @@ function module.merge(src, dest, opts)
     end
   end
 end
-
 
 function module.contains(tbl, value)
   if tbl ~= nil then
@@ -91,15 +87,13 @@ function module.contains(tbl, value)
   return false
 end
 
-
 function module.is_empty(tbl)
   return next(tbl) == nil
 end
 
-
 function module.make_keys(tbl, ...)
   local current = tbl
-  for i = 1, select('#', ...) do
+  for i = 1, select("#", ...) do
     local key = select(i, ...)
     if current[key] == nil then
       current[key] = {}
@@ -108,14 +102,13 @@ function module.make_keys(tbl, ...)
   end
 end
 
-
 function module.has_keys(tbl, ...)
   if tbl == nil then
     return false
   end
 
   local current = tbl
-  for i = 1, select('#', ...) do
+  for i = 1, select("#", ...) do
     local key = select(i, ...)
     if current[key] == nil then
       return false
@@ -126,10 +119,9 @@ function module.has_keys(tbl, ...)
   return true
 end
 
-
 local function overwrite(src, target)
   for k, v in pairs(src) do
-    if type(v) == 'table' then
+    if type(v) == "table" then
       target[k] = {}
       overwrite(v, target[k])
     else
@@ -138,14 +130,12 @@ local function overwrite(src, target)
   end
 end
 
-
 function module.overwrite(src, target)
   for k, _ in pairs(target) do
     target[k] = nil
   end
   overwrite(src, target)
 end
-
 
 local function _flat_append(dest, o, key)
   if type(o) == "table" then
@@ -166,10 +156,9 @@ local function _flat_append(dest, o, key)
   end
 end
 
-
 function module.flattened(...)
   local o = {}
-  for i = 1, select('#', ...) do
+  for i = 1, select("#", ...) do
     table.insert(o, select(i, ...))
   end
 
@@ -178,29 +167,28 @@ function module.flattened(...)
   return flat
 end
 
-
 function module.tostring(o)
   local type_ = type(o)
-  if type_ == 'string' then
+  if type_ == "string" then
     return '"' .. tostring(o) .. '"'
-  elseif type_ ~= 'table' then
+  elseif type_ ~= "table" then
     return tostring(o)
   end
 
   local is_first = true
   local is_array_ = is_array(o)
 
-  local result = is_array_ and '[' or '{'
+  local result = is_array_ and "[" or "{"
   for key, value in pairs(o) do
     if not is_first then
-      result = result .. ', '
+      result = result .. ", "
     end
 
     if not is_array_ then
-      if type(key) == 'string' and key:find('%s') then
-        result = result .. '"' .. key .. '"' .. ': '
+      if type(key) == "string" and key:find("%s") then
+        result = result .. '"' .. key .. '"' .. ": "
       else
-        result = result .. tostring(key) .. ': '
+        result = result .. tostring(key) .. ": "
       end
     end
 
@@ -208,7 +196,7 @@ function module.tostring(o)
     is_first = false
   end
 
-  return result .. (is_array_ and ']' or '}')
+  return result .. (is_array_ and "]" or "}")
 end
 
 return module

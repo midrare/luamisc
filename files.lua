@@ -1,7 +1,6 @@
 local module, _ = {}, nil
 module.name, _ = ...
 
-
 ---@param source? string caller debug.getinfo(1).source
 ---@return string dir path to dir of calling script
 ---@nodiscard
@@ -32,18 +31,16 @@ local is_windows = (function()
   if is_ok then
     return has_win > 0
   end
-  return package.config:sub(1, 1) == '\\'
+  return package.config:sub(1, 1) == "\\"
 end)()
 
-
 local function dirname(filename)
-  local d = filename:match('^(.*[\\/]).+$')
+  local d = filename:match("^(.*[\\/]).+$")
   if d ~= nil then
-    d = d:match('^(.+)[\\/]+$') or d
+    d = d:match("^(.+)[\\/]+$") or d
   end
   return d
 end
-
 
 local function fix_numeric_keys(o)
   if type(o) ~= "table" then
@@ -53,11 +50,11 @@ local function fix_numeric_keys(o)
   local remapped = {}
 
   for key, value in pairs(o) do
-    if type(key) == 'string' then
+    if type(key) == "string" then
       key = tonumber(key) or key
     end
 
-    if type(value) == 'table' then
+    if type(value) == "table" then
       value = fix_numeric_keys(value)
     end
 
@@ -67,16 +64,15 @@ local function fix_numeric_keys(o)
   return remapped
 end
 
-
 ---@diagnostic disable-next-line: redefined-local
 function module.makedirs(dirname)
-  local is_ok, _ = pcall(vimfn.mkdir, dirname, 'p')
+  local is_ok, _ = pcall(vimfn.mkdir, dirname, "p")
   if is_ok then
     return true
   end
 
-  if dirname:match('^[a-zA-Z0-9_-\\/ %.\']+$') then
-    dirname = dirname:gsub('[\\/]', '/')  -- prevent char escapes
+  if dirname:match("^[a-zA-Z0-9_-\\/ %.']+$") then
+    dirname = dirname:gsub("[\\/]", "/") -- prevent char escapes
     if is_windows then
       os.execute('cmd.exe /E:ON /F:OFF /V:OFF /Q "' .. dirname .. '"')
     else
@@ -88,35 +84,35 @@ function module.makedirs(dirname)
   return false
 end
 
-
 ---@param filename string path to file
 ---@return any? data file contents
 ---@nodiscard
 function module.read_file(filename)
-  local file = io.open(filename, 'r')
+  local file = io.open(filename, "r")
   if not file then
     return nil
   end
 
-  local data = file:read('*a')
+  local data = file:read("*a")
   file:close()
 
   return data
 end
 
-
 ---@param filename string path to file
 ---@param data? any data to write
 ---@return boolean status true if write ok
 function module.write_file(filename, data)
-  if data == nil then data = '' end
+  if data == nil then
+    data = ""
+  end
 
   local parent_dir = dirname(filename)
   if parent_dir then
     module.makedirs(parent_dir)
   end
 
-  local file = io.open(filename, 'w')
+  local file = io.open(filename, "w")
   if not file then
     return false
   end
@@ -127,7 +123,6 @@ function module.write_file(filename, data)
 
   return true
 end
-
 
 ---@param filename string path to json file
 ---@return any? data parsed file contents
@@ -144,7 +139,7 @@ function module.read_json(filename)
 
   local status_ok, json_obj = pcall(json.decode, data)
   if not status_ok or not json_obj then
-   status_ok, json_obj = pcall(vimfn.json_decode, data)
+    status_ok, json_obj = pcall(vimfn.json_decode, data)
   end
   if not status_ok or not json_obj then
     return nil
@@ -156,7 +151,7 @@ end
 ---@param filename string path to json file
 ---@param data? any data to encode as json and write
 function module.write_json(filename, data)
-  assert(type(filename) == 'string', 'filepath must be of type string')
+  assert(type(filename) == "string", "filepath must be of type string")
   local status_ok, json_str = pcall(json.encode, data)
   if not status_ok or not json_str then
     status_ok, json_str = pcall(vimfn.json_encode, data)

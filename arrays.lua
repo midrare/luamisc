@@ -11,7 +11,6 @@ local function pred_default(a)
   return false
 end
 
-
 local function _to_norm_range(arr, start, stop)
   if not start then
     start = 1
@@ -123,7 +122,6 @@ local function _cloned(o, deep)
   return o2
 end
 
-
 function module.is_array(o)
   if type(o) ~= "table" then
     return false
@@ -134,7 +132,6 @@ function module.is_array(o)
   end
   return max_idx == #o
 end
-
 
 ---@param items any[] array to read from
 ---@param start? integer start index
@@ -149,7 +146,6 @@ function module.get_from(items, start, stop)
   end, start, stop)
   return results
 end
-
 
 ---@param items any[] items to extract from
 ---@param pred? function(any): boolean true if should extract
@@ -166,7 +162,6 @@ function module.get_if(items, pred, invert)
   return results
 end
 
-
 ---@param items any[] items to extract from
 ---@param start? integer start index
 ---@param stop? integer stop index (inclusive)
@@ -179,7 +174,6 @@ function module.remove_from(items, start, stop)
   end, start, stop)
   return results
 end
-
 
 ---@param items any[] items to extract from
 ---@param pred? function(any): boolean true if should extract
@@ -194,7 +188,6 @@ function module.remove_if(items, pred, invert)
   end, pred, invert)
   return results
 end
-
 
 ---@param items any[] array to clone
 ---@param start? integer start index
@@ -213,7 +206,6 @@ function module.clone(items, start, stop, deep)
   end, start, stop)
   return results
 end
-
 
 ---@param items any[] array to make unique
 ---@param key? function(any): any how to compare for equivalence
@@ -244,7 +236,6 @@ function module.uniqify(items, key)
   end
 end
 
-
 ---@param items any[] array to extend
 ---@param more any[] items to append
 function module.extend(items, more)
@@ -252,7 +243,6 @@ function module.extend(items, more)
     table.insert(items, e)
   end
 end
-
 
 ---@param items any[] list to iterate over
 ---@param f function(any) function to apply
@@ -263,7 +253,6 @@ function module.apply(items, f, start, stop)
   _do_from(items, f, start, stop)
 end
 
-
 ---@param items any[] items to filter
 ---@param pred? function(any): boolean true if should keep
 ---@param invert? boolean switch behavior of predicate
@@ -271,7 +260,6 @@ function module.filter(items, pred, invert)
   invert = invert or false
   module.remove_if(items, pred, not invert)
 end
-
 
 ---@param items any[] items to transform
 ---@param f function(a: any): any transformation to apply
@@ -281,7 +269,6 @@ function module.transform(items, f)
   end
 end
 
-
 ---@param items any[] items to remove from
 ---@param value any value to remove
 ---@param invert? boolean true to reverse behavior
@@ -290,6 +277,5 @@ function module.remove(items, value, invert)
     return o == value
   end, invert)
 end
-
 
 return module
