@@ -152,7 +152,7 @@ end
 
 
 ---@param items any[] items to extract from
----@param pred? function(any): boolean true if should extract
+---@param pred? fun(any): boolean true if should extract
 ---@param invert? boolean switch behavior of predicate
 ---@return any[] items all items satisfying the predicate
 ---@nodiscard
@@ -182,7 +182,7 @@ end
 
 
 ---@param items any[] items to extract from
----@param pred? function(any): boolean true if should extract
+---@param pred? fun(any): boolean true if should extract
 ---@param invert? boolean switch behavior of predicate
 ---@return any[] items all items satisfying the predicate
 function module.remove_if(items, pred, invert)
@@ -216,7 +216,7 @@ end
 
 
 ---@param items any[] array to make unique
----@param key? function(any): any how to compare for equivalence
+---@param key? fun(any): any how to compare for equivalence
 function module.uniqify(items, key)
   local seen = {}
   local base = 1
@@ -255,7 +255,7 @@ end
 
 
 ---@param items any[] list to iterate over
----@param f function(any) function to apply
+---@param f fun(any) function to apply
 ---@param start? integer index to start at
 ---@param stop? integer index to stop at (inclusive)
 function module.apply(items, f, start, stop)
@@ -265,7 +265,7 @@ end
 
 
 ---@param items any[] items to filter
----@param pred? function(any): boolean true if should keep
+---@param pred? fun(any): boolean true if should keep
 ---@param invert? boolean switch behavior of predicate
 function module.filter(items, pred, invert)
   invert = invert or false
@@ -274,7 +274,7 @@ end
 
 
 ---@param items any[] items to transform
----@param f function(a: any): any transformation to apply
+---@param f fun(a: any): any transformation to apply
 function module.transform(items, f)
   for k, v in pairs(items) do
     items[k] = f(v)
