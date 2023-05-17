@@ -149,19 +149,20 @@ function module.isabs(filename)
 end
 
 ---@param filename string file path
----@param pwd string current directory
+---@param cwd? string current directory
 ---@return string filename absolute file path
 ---@nodiscard
-function module.abspath(filename, pwd)
+function module.abspath(filename, cwd)
+  cwd = cwd or get_cwd()
   filename = filename:gsub("[\\/]+$", "")
   if not module.isabs(filename) then
-    filename = pwd:gsub("[\\/]+$", "") .. path_sep .. filename
+    filename = cwd:gsub("[\\/]+$", "") .. path_sep .. filename
   end
   return module.normpath(filename)
 end
 
 ---@param filename string file path
----@param cwd string current directory
+---@param cwd? string current directory
 ---@return string filename canonical file path
 ---@nodiscard
 function module.canonical(filename, cwd)
