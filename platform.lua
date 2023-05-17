@@ -41,6 +41,18 @@ local function _strip(s)
   return s:gsub("^%s+", ""):gsub("%s+$", "")
 end
 
+local function _read_file(filename)
+  local file = io.open(filename, "r")
+  if not file then
+    return nil
+  end
+
+  local data = file:read("*a")
+  file:close()
+
+  return data
+end
+
 ---@return integer? procs number of processors detected
 ---@nodiscard
 function M.cpu_procs()
@@ -161,6 +173,70 @@ function M.read_winreg_value(key, name)
   end
 
   return values and values[name] or nil
+end
+
+local function _get_win_machine_id()
+  local key = "HKLM\\SOFTWARE\\Microsoft\\Cryptography"
+  local name = "MachineGuid"
+  local value = M.read_winreg_value(key, name)
+  if not value or not value.value then
+    return nil
+  end
+  return tostring(value.value)
+end
+
+local function _get_macos_machine_id()
+  local output = _exec("ioreg -rd1 -c IOPlatformExpertDevice")
+  if not output then
+    return nil
+  end
+  local match = output:match(
+    "IOPlatformUUID[^\n]+=[\r\t\v\n ]*[\"']?(.+)[\"']?[\r\t\v\n ]*$"
+  )
+  if not match then
+    return nil
+  end
+  return _strip(match)
+end
+
+local function _get_linux_machine_id()
+  local mach_id = _read_file("/var/lib/dbus/machine-id")
+  mach_id = mach_id and _strip(mach_id) or nil
+  if not mach_id or #mach_id <= 0 then
+    mach_id = _read_file("/etc-machine-id")
+    mach_id = mach_id and _strip(mach_id) or nil
+  end
+  if not mach_id or #mach_id <= 0 then
+    return nil
+  end
+  return mach_id
+end
+
+local function _get_bsd_machine_id()
+  local mach_id = _read_file("/etc/hostid")
+  mach_id = mach_id and _strip(mach_id) or nil
+
+  if not mach_id then
+    local output = _exec("kenv -q smbios.system.uuid")
+    mach_id = output and _strip(output) or nil
+  end
+
+  return mach_id
+end
+
+---@return string? mach_id unique machine-specific id
+function M.machine_id()
+  local mach_id = nil
+  if is_windows then
+    mach_id = mach_id or _get_win_machine_id()
+  else
+    mach_id = mach_id
+      or _get_macos_machine_id()
+      or _get_linux_machine_id()
+      or _get_bsd_machine_id()
+  end
+
+  return mach_id
 end
 
 return M
