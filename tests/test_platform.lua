@@ -1,4 +1,6 @@
-local M = {}
+local modulename, _ = ...
+---@diagnostic disable-next-line: unused-local
+local moduleroot = modulename and modulename:gsub("(.+)%..+", "%1") or nil
 
 ---@param source? string caller debug.getinfo(1).source
 ---@return string dir path to dir of calling script
@@ -18,16 +20,18 @@ local function get_script_dir(source)
   return cwd .. "/" .. script:gsub("[\\/]+[^\\/]*$", "")
 end
 
-local old_package_path = package.path
-package.path = get_script_dir() .. "/?.lua"
-M.arrays = require("arrays")
-M.date = require("date")
-M.files = require("files")
-M.json = require("json")
-M.paths = require("paths")
-M.platform = require("platform")
-M.tables = require("tables")
-M.yaml = require("yaml")
-package.path = old_package_path
+package.path = package.path
+  .. ";"
+  .. get_script_dir()
+  .. "/?.lua"
+  .. ";"
+  .. get_script_dir()
+  .. "/../?.lua"
+local luaunit = require("luaunit")
+local platform = require("platform")
+local tables = require("tables")
 
-return M
+TEST_PLATFORM = {
+}
+
+os.exit(luaunit.LuaUnit.run())

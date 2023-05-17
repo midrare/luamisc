@@ -1,5 +1,4 @@
-local module, _ = {}, nil
-module.name, _ = ...
+local M = {}
 
 ---@param source? string caller debug.getinfo(1).source
 ---@return string dir path to dir of calling script
@@ -65,7 +64,7 @@ local function fix_numeric_keys(o)
 end
 
 ---@diagnostic disable-next-line: redefined-local
-function module.makedirs(dirname)
+function M.makedirs(dirname)
   local is_ok, _ = pcall(vimfn.mkdir, dirname, "p")
   if is_ok then
     return true
@@ -87,7 +86,7 @@ end
 ---@param filename string path to file
 ---@return any? data file contents
 ---@nodiscard
-function module.read_file(filename)
+function M.read_file(filename)
   local file = io.open(filename, "r")
   if not file then
     return nil
@@ -102,14 +101,14 @@ end
 ---@param filename string path to file
 ---@param data? any data to write
 ---@return boolean status true if write ok
-function module.write_file(filename, data)
+function M.write_file(filename, data)
   if data == nil then
     data = ""
   end
 
   local parent_dir = dirname(filename)
   if parent_dir then
-    module.makedirs(parent_dir)
+    M.makedirs(parent_dir)
   end
 
   local file = io.open(filename, "w")
@@ -127,12 +126,12 @@ end
 ---@param filename string path to json file
 ---@return any? data parsed file contents
 ---@nodiscard
-function module.read_json(filename)
+function M.read_json(filename)
   if vimfn.filereadable(filename) <= 0 then
     return nil
   end
 
-  local data = module.read_file(filename)
+  local data = M.read_file(filename)
   if not data then
     return nil
   end
@@ -150,7 +149,7 @@ end
 
 ---@param filename string path to json file
 ---@param data? any data to encode as json and write
-function module.write_json(filename, data)
+function M.write_json(filename, data)
   assert(type(filename) == "string", "filepath must be of type string")
   local status_ok, json_str = pcall(json.encode, data)
   if not status_ok or not json_str then
@@ -159,7 +158,7 @@ function module.write_json(filename, data)
   if not status_ok or not json_str then
     return
   end
-  module.write_file(filename, json_str)
+  M.write_file(filename, json_str)
 end
 
-return module
+return M

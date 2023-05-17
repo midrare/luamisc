@@ -1,8 +1,4 @@
-local modulename, _ = ...
----@diagnostic disable-next-line: unused-local
-local moduleroot = modulename:gsub("(.+)%..+", "%1")
-
-local module = {}
+local M = {}
 
 local vimfn = (vim or {}).fn or {}
 
@@ -47,7 +43,7 @@ end
 
 ---@return integer? procs number of processors detected
 ---@nodiscard
-function module.cpu_procs()
+function M.cpu_procs()
   local s = os.getenv("NUMBER_OF_PROCESSORS")
 
   if s == nil or s:match("^%s*$") then
@@ -68,13 +64,13 @@ end
 
 ---@return boolean is_win true if current os is windows
 ---@nodiscard
-function module.is_windows()
+function M.is_windows()
   return is_windows
 end
 
 ---@return string? ver_str neovim version string
 ---@nodiscard
-function module.nvim_version()
+function M.nvim_version()
   if vimfn.execute then
     local ver_str = vimfn.execute("version")
     return ver_str:match("^.+ +v([%d.]+)[-_%s]*([%w._-]*)\r?\n")
@@ -88,7 +84,7 @@ end
 ---@param key string path to registry key
 ---@return string[] keys, table<string, regval> values, regval? default
 ---@nodiscard
-function module.read_winreg(key)
+function M.read_winreg(key)
   assert(type(key) == "string", "key must be a string")
 
   if not is_windows then
@@ -148,7 +144,7 @@ end
 ---@param key string registry key
 ---@param name? string value name
 ---@return regval? value value read from registry
-function module.read_winreg_value(key, name)
+function M.read_winreg_value(key, name)
   if not is_windows then
     return nil
   end
@@ -158,7 +154,7 @@ function module.read_winreg_value(key, name)
     :gsub("[\\/]+$", "")
     :gsub("[^a-zA-Z0-9_\\-\\/\\. ]", "")
 
-  local _, values, default = module.read_winreg(key)
+  local _, values, default = M.read_winreg(key)
 
   if not name or #name <= 0 then
     return default
@@ -167,4 +163,4 @@ function module.read_winreg_value(key, name)
   return values and values[name] or nil
 end
 
-return module
+return M

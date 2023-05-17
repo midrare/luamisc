@@ -1,8 +1,4 @@
-local modulename, _ = ...
----@diagnostic disable-next-line: unused-local
-local moduleroot = modulename:gsub("(.+)%..+", "%1")
-
-local module = {}
+local M = {}
 
 local function pred_default(a)
   if a then
@@ -122,7 +118,7 @@ local function _cloned(o, deep)
   return o2
 end
 
-function module.is_array(o)
+function M.is_array(o)
   if type(o) ~= "table" then
     return false
   end
@@ -138,7 +134,7 @@ end
 ---@param stop? integer stop index (inclusive)
 ---@return any[] got results within range
 ---@nodiscard
-function module.get_from(items, start, stop)
+function M.get_from(items, start, stop)
   start, stop = _to_norm_range(items, start, stop)
   local results = {}
   _do_from(items, function(e)
@@ -152,7 +148,7 @@ end
 ---@param invert? boolean switch behavior of predicate
 ---@return any[] items all items satisfying the predicate
 ---@nodiscard
-function module.get_if(items, pred, invert)
+function M.get_if(items, pred, invert)
   pred = pred or pred_default
   invert = invert or false
   local results = {}
@@ -166,7 +162,7 @@ end
 ---@param start? integer start index
 ---@param stop? integer stop index (inclusive)
 ---@return any[] extracted items extracted within range
-function module.remove_from(items, start, stop)
+function M.remove_from(items, start, stop)
   start, stop = _to_norm_range(items, start, stop)
   local results = {}
   _del_from(items, function(e)
@@ -179,7 +175,7 @@ end
 ---@param pred? fun(any): boolean true if should extract
 ---@param invert? boolean switch behavior of predicate
 ---@return any[] items all items satisfying the predicate
-function module.remove_if(items, pred, invert)
+function M.remove_if(items, pred, invert)
   pred = pred or pred_default
   invert = invert or false
   local results = {}
@@ -195,7 +191,7 @@ end
 ---@param deep? boolean do deep clone
 ---@return any[] clone cloned items
 ---@nodiscard
-function module.clone(items, start, stop, deep)
+function M.clone(items, start, stop, deep)
   start, stop = _to_norm_range(items, start, stop)
   local results = {}
   _do_from(items, function(e)
@@ -209,7 +205,7 @@ end
 
 ---@param items any[] array to make unique
 ---@param key? fun(any): any how to compare for equivalence
-function module.uniqify(items, key)
+function M.uniqify(items, key)
   local seen = {}
   local base = 1
 
@@ -238,7 +234,7 @@ end
 
 ---@param items any[] array to extend
 ---@param more any[] items to append
-function module.extend(items, more)
+function M.extend(items, more)
   for _, e in ipairs(more) do
     table.insert(items, e)
   end
@@ -248,7 +244,7 @@ end
 ---@param f fun(any) function to apply
 ---@param start? integer index to start at
 ---@param stop? integer index to stop at (inclusive)
-function module.apply(items, f, start, stop)
+function M.apply(items, f, start, stop)
   start, stop = _to_norm_range(items, start, stop)
   _do_from(items, f, start, stop)
 end
@@ -256,14 +252,14 @@ end
 ---@param items any[] items to filter
 ---@param pred? fun(any): boolean true if should keep
 ---@param invert? boolean switch behavior of predicate
-function module.filter(items, pred, invert)
+function M.filter(items, pred, invert)
   invert = invert or false
-  module.remove_if(items, pred, not invert)
+  M.remove_if(items, pred, not invert)
 end
 
 ---@param items? any[] items to transform
 ---@param f? fun(a: any): any transformation to apply
-function module.transform(items, f)
+function M.transform(items, f)
   if items == nil or f == nil then
     return
   end
@@ -280,10 +276,10 @@ end
 ---@param items any[] items to remove from
 ---@param value any value to remove
 ---@param invert? boolean true to reverse behavior
-function module.remove(items, value, invert)
+function M.remove(items, value, invert)
   _del_if(items, nil, function(o)
     return o == value
   end, invert)
 end
 
-return module
+return M

@@ -1,5 +1,4 @@
-local module, _ = {}, nil
-module.name, _ = ...
+local M = {}
 
 local vimfn = (vim or {}).fn or {}
 
@@ -40,14 +39,14 @@ end
 
 ---@return string sep os-specific path separator
 ---@nodiscard
-function module.sep()
+function M.sep()
   return path_sep
 end
 
 ---@param filename string file path
 ---@return string basename last component of file path
 ---@nodiscard
-function module.basename(filename)
+function M.basename(filename)
   local bname, _ = filename:gsub("^.*[\\/](.+)[\\/]*", "%1")
   return bname
 end
@@ -55,7 +54,7 @@ end
 ---@param filename string file path
 ---@return string? dir parent directory of path
 ---@nodiscard
-function module.dirname(filename)
+function M.dirname(filename)
   local parent_dir = filename:match("^(.*[\\/]).+$")
   if not parent_dir or #parent_dir <= 0 then
     return nil
@@ -66,7 +65,7 @@ end
 ---@param filename string file path
 ---@return string? stem base name without file extension
 ---@nodiscard
-function module.filestem(filename)
+function M.filestem(filename)
   local basename = filename:match("^.+[\\/](.+)$") or filename
   local stem = basename:gsub("^(.+)%.[^%s]+$", "%1")
   if not stem or #stem <= 0 then
@@ -78,7 +77,7 @@ end
 ---@param filename string file path
 ---@return string? file extension if any
 ---@nodiscard
-function module.fileext(filename)
+function M.fileext(filename)
   local basename = filename:match("^.+[\\/](.+)$") or filename
   local ext = basename:match("^.+(%.[^%s]+)$")
   if not ext or #ext <= 0 then
@@ -89,7 +88,7 @@ end
 ---@param filename string file path
 ---@return string filepath file path with path separators for current os
 ---@nodiscard
-function module.normcase(filename)
+function M.normcase(filename)
   local p, _ = nil, nil
   if is_windows then
     p, _ = filename:gsub("/", "\\")
@@ -102,10 +101,10 @@ end
 ---@param filename string file path
 ---@return string filepath file path with ".." collapsed
 ---@nodiscard
-function module.normpath(filename)
+function M.normpath(filename)
   if is_windows then
     if filename:match("^\\\\") then -- UNC
-      return "\\\\" .. module.normpath(filename:sub(3))
+      return "\\\\" .. M.normpath(filename:sub(3))
     end
     filename = filename:gsub("/", "\\")
   end
@@ -144,7 +143,7 @@ end
 ---@param filename string file path
 ---@return boolean is_abs if file path is an absolute path
 ---@nodiscard
-function module.isabs(filename)
+function M.isabs(filename)
   return filename:match("^[\\/]") or filename:match("^[a-zA-Z]:[\\/]")
 end
 
@@ -152,24 +151,24 @@ end
 ---@param cwd? string current directory
 ---@return string filename absolute file path
 ---@nodiscard
-function module.abspath(filename, cwd)
+function M.abspath(filename, cwd)
   cwd = cwd or get_cwd()
   filename = filename:gsub("[\\/]+$", "")
-  if not module.isabs(filename) then
+  if not M.isabs(filename) then
     filename = cwd:gsub("[\\/]+$", "") .. path_sep .. filename
   end
-  return module.normpath(filename)
+  return M.normpath(filename)
 end
 
 ---@param filename string file path
 ---@param cwd? string current directory
 ---@return string filename canonical file path
 ---@nodiscard
-function module.canonical(filename, cwd)
-  local normcased = module.normcase(filename)
+function M.canonical(filename, cwd)
+  local normcased = M.normcase(filename)
 
-  if not module.isabs(normcased) then
-    return module.abspath(normcased, cwd)
+  if not M.isabs(normcased) then
+    return M.abspath(normcased, cwd)
   end
 
   return normcased
@@ -178,8 +177,8 @@ end
 ---@vararg string file path segments
 ---@return string filepath file path joined using os-specific path separator
 ---@nodiscard
-function module.join(...)
-  local sep = module.sep()
+function M.join(...)
+  local sep = M.sep()
   local joined = ""
 
   for i = 1, select("#", ...) do
@@ -199,13 +198,13 @@ end
 ---@param origin? string dir to make relative against
 ---@param inscase? boolean true if ignore case
 ---@return string relpath
-function module.relpath(filename, origin, inscase)
+function M.relpath(filename, origin, inscase)
   if inscase == nil then
     inscase = is_windows
   end
   origin = origin or get_cwd()
-  origin = module.normcase(origin)
-  filename = module.abspath(filename, origin)
+  origin = M.normcase(origin)
+  filename = M.abspath(filename, origin)
 
   local origin_segs = split_path(origin)
   local path_segs = split_path(filename)
@@ -237,7 +236,7 @@ end
 
 ---@param ext string? file extension
 ---@return string? ext canonicalized file extension
-function module.canonical_ext(ext)
+function M.canonical_ext(ext)
   if not ext then
     return nil
   end
@@ -248,4 +247,4 @@ function module.canonical_ext(ext)
   return "." .. ext:lower()
 end
 
-return module
+return M
