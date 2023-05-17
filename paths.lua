@@ -234,7 +234,7 @@ function module.relpath(filename, origin, inscase)
 end
 
 
----@param ext string file extension
+---@param ext string? file extension
 ---@return string? ext canonicalized file extension
 function module.canonical_ext(ext)
   if not ext then
