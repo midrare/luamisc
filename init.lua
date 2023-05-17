@@ -24,6 +24,7 @@ package.path = get_script_dir() .. "/?.lua"
 module.arrays = require("arrays")
 module.date = require("date")
 module.files = require("files")
+module.json = require("json")
 module.paths = require("paths")
 module.platform = require("platform")
 module.tables = require("tables")

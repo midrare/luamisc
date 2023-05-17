@@ -1,8 +1,5 @@
-local modulename, _ = ...
----@diagnostic disable-next-line: unused-local
-local moduleroot = modulename:gsub("(.+)%..+", "%1")
-
-local module = {}
+local module, _ = {}, nil
+module.name, _ = ...
 
 local vimfn = (vim or {}).fn or {}
 
@@ -11,10 +8,35 @@ local is_windows = (function()
   if is_ok then
     return has_win > 0
   end
-  return package.config:sub(1, 1) == '\\'
+  return package.config:sub(1, 1) == "\\"
 end)()
-local path_sep = is_windows and '\\' or '/'
+local path_sep = is_windows and "\\" or "/"
 
+local function get_cwd()
+  local cwd = vimfn.getcwd and vimfn.getcwd(-1, -1) or nil
+  if cwd then
+    cwd = cwd:gsub("[\\/]+$", ""):gsub("[\\/]", "/")
+    return cwd
+  end
+
+  local pwd_cmd = is_windows and "echo %cd%" or "pwd"
+  local pipe = io.popen(pwd_cmd)
+  cwd = pipe and pipe:read("*l")
+  if pipe then
+    pipe:close()
+  end
+
+  cwd = cwd:gsub("[\\/]+$", ""):gsub("[\\/]", "/")
+  return cwd
+end
+
+local function split_path(s)
+  local parts = {}
+  s:gsub("[^\\/]+", function(e)
+    table.insert(parts, e)
+  end)
+  return parts
+end
 
 ---@return string sep os-specific path separator
 ---@nodiscard
@@ -23,13 +45,10 @@ function module.sep()
 end
 
 ---@param filename string file path
----@return string? basename last component of file path
+---@return string basename last component of file path
 ---@nodiscard
 function module.basename(filename)
-  local bname, _ = filename:gsub('^.*[\\/](.+)[\\/]*', '%1')
-  if not bname or #bname <= 0 then
-    return nil
-  end
+  local bname, _ = filename:gsub("^.*[\\/](.+)[\\/]*", "%1")
   return bname
 end
 
@@ -37,19 +56,19 @@ end
 ---@return string? dir parent directory of path
 ---@nodiscard
 function module.dirname(filename)
-  local parent_dir = filename:match('^(.*[\\/]).+$')
+  local parent_dir = filename:match("^(.*[\\/]).+$")
   if not parent_dir or #parent_dir <= 0 then
     return nil
   end
-  return parent_dir:match('^(.+)[\\/]+$') or parent_dir
+  return parent_dir:match("^(.+)[\\/]+$") or parent_dir
 end
 
 ---@param filename string file path
 ---@return string? stem base name without file extension
 ---@nodiscard
 function module.filestem(filename)
-  local basename = filename:match('^.+[\\/](.+)$') or filename
-  local stem = basename:gsub('^(.+)%.[^%s]+$', '%1')
+  local basename = filename:match("^.+[\\/](.+)$") or filename
+  local stem = basename:gsub("^(.+)%.[^%s]+$", "%1")
   if not stem or #stem <= 0 then
     return nil
   end
@@ -60,8 +79,8 @@ end
 ---@return string? file extension if any
 ---@nodiscard
 function module.fileext(filename)
-  local basename = filename:match('^.+[\\/](.+)$') or filename
-  local ext = basename:match('^.+(%.[^%s]+)$')
+  local basename = filename:match("^.+[\\/](.+)$") or filename
+  local ext = basename:match("^.+(%.[^%s]+)$")
   if not ext or #ext <= 0 then
     return nil
   end
@@ -73,9 +92,9 @@ end
 function module.normcase(filename)
   local p, _ = nil, nil
   if is_windows then
-    p, _ = filename:gsub('/', '\\')
+    p, _ = filename:gsub("/", "\\")
   else
-    p, _ = filename:gsub('\\', '/')
+    p, _ = filename:gsub("\\", "/")
   end
   return p
 end
@@ -85,38 +104,38 @@ end
 ---@nodiscard
 function module.normpath(filename)
   if is_windows then
-    if filename:match('^\\\\') then -- UNC
-      return '\\\\' .. module.normpath(filename:sub(3))
+    if filename:match("^\\\\") then -- UNC
+      return "\\\\" .. module.normpath(filename:sub(3))
     end
-    filename = filename:gsub('/', '\\')
+    filename = filename:gsub("/", "\\")
   end
 
   local num_subs = 0
   repeat
     -- // to /
-    filename, num_subs = filename:gsub('[\\/][\\/]+', path_sep)
+    filename, num_subs = filename:gsub("[\\/][\\/]+", path_sep)
   until num_subs <= 0
 
   repeat
     -- /./ to /
-    filename, num_subs = filename:gsub('[\\/]%.[\\/]', path_sep)
+    filename, num_subs = filename:gsub("[\\/]%.[\\/]", path_sep)
   until num_subs <= 0
 
   repeat
     -- foo/.. to ""
-    filename, num_subs = filename:gsub('[^\\/]+[\\/]%.%.[\\/]*', '')
+    filename, num_subs = filename:gsub("[^\\/]+[\\/]%.%.[\\/]*", "")
   until num_subs <= 0
 
-  if filename == '' then
-    filename = '.'
+  if filename == "" then
+    filename = "."
   end
 
   -- foo/bar/ to foo/bar
-  filename = filename:gsub('[\\/]+$', '')
+  filename = filename:gsub("[\\/]+$", "")
 
   -- C: to C:\
-  if is_windows and filename:match('^[^\\/]+:$') then
-    filename = filename .. '\\'
+  if is_windows and filename:match("^[^\\/]+:$") then
+    filename = filename .. "\\"
   end
 
   return filename
@@ -126,7 +145,7 @@ end
 ---@return boolean is_abs if file path is an absolute path
 ---@nodiscard
 function module.isabs(filename)
-  return filename:match('^[\\/]') or filename:match('^[a-zA-Z]:[\\/]')
+  return filename:match("^[\\/]") or filename:match("^[a-zA-Z]:[\\/]")
 end
 
 ---@param filename string file path
@@ -134,9 +153,9 @@ end
 ---@return string filename absolute file path
 ---@nodiscard
 function module.abspath(filename, pwd)
-  filename = filename:gsub('[\\/]+$', '')
+  filename = filename:gsub("[\\/]+$", "")
   if not module.isabs(filename) then
-    filename = pwd:gsub('[\\/]+$', '') .. path_sep .. filename
+    filename = pwd:gsub("[\\/]+$", "") .. path_sep .. filename
   end
   return module.normpath(filename)
 end
@@ -160,10 +179,10 @@ end
 ---@nodiscard
 function module.join(...)
   local sep = module.sep()
-  local joined = ''
+  local joined = ""
 
-  for i = 1, select('#', ...) do
-    local el = select(i, ...):gsub('[\\/]+$', '')
+  for i = 1, select("#", ...) do
+    local el = select(i, ...):gsub("[\\/]+$", "")
     if el and #el > 0 then
       if #joined > 0 then
         joined = joined .. sep
@@ -173,6 +192,59 @@ function module.join(...)
   end
 
   return joined
+end
+
+---@param filename string file path to make relative
+---@param origin? string dir to make relative against
+---@param inscase? boolean true if ignore case
+---@return string relpath
+function module.relpath(filename, origin, inscase)
+  if inscase == nil then
+    inscase = is_windows
+  end
+  origin = origin or get_cwd()
+  origin = module.normcase(origin)
+  filename = module.abspath(filename, origin)
+
+  local origin_segs = split_path(origin)
+  local path_segs = split_path(filename)
+
+  local mismatch_idx = math.min(#origin_segs, #path_segs) + 1
+  for i = 1, math.min(#origin_segs, #path_segs) do
+    if
+      (not inscase and origin_segs[i] ~= path_segs[i])
+      or (inscase and origin_segs[i]:lower() ~= path_segs[i]:lower())
+    then
+      mismatch_idx = i
+      break
+    end
+  end
+
+  local components = {}
+  ---@diagnostic disable-next-line: unused-local
+  for i = 1, #origin_segs - mismatch_idx + 1 do
+    table.insert(components, "..")
+  end
+
+  for i = mismatch_idx, #path_segs do
+    table.insert(components, path_segs[i])
+  end
+
+  return table.concat(components, path_sep)
+end
+
+
+---@param ext string? file extension
+---@return string? ext canonicalized file extension
+function module.canonical_ext(ext)
+  if not ext then
+    return nil
+  end
+  ext = ext:gsub("^[%s%.]+", ""):gsub("%s+$", "")
+  if #ext <= 0 then
+    return nil
+  end
+  return "." .. ext:lower()
 end
 
 return module

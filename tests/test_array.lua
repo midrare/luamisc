@@ -35,8 +35,8 @@ TEST_ARRAYS = {
   test_get_from_forwards = function()
     local items = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }
     luaunit.assert_equals(arrays.get_from(items, 0, 0), {})
-    luaunit.assert_equals(arrays.get_from(items, 0, 1), {1})
-    luaunit.assert_equals(arrays.get_from(items, 1, 1), {1})
+    luaunit.assert_equals(arrays.get_from(items, 0, 1), { 1 })
+    luaunit.assert_equals(arrays.get_from(items, 1, 1), { 1 })
     luaunit.assert_equals(arrays.get_from(items, 0, 3), { 1, 2, 3 })
     luaunit.assert_equals(arrays.get_from(items, 1, 3), { 1, 2, 3 })
     luaunit.assert_equals(arrays.get_from(items, 4, 6), { 4, 5, 6 })
@@ -62,8 +62,8 @@ TEST_ARRAYS = {
     luaunit.assert_equals(arrays.get_from(items, 6, 4), { 6, 5, 4 })
     luaunit.assert_equals(arrays.get_from(items, 3, 1), { 3, 2, 1 })
     luaunit.assert_equals(arrays.get_from(items, 3, 0), { 3, 2, 1 })
-    luaunit.assert_equals(arrays.get_from(items, 1, 1), {1})
-    luaunit.assert_equals(arrays.get_from(items, 1, 0), {1})
+    luaunit.assert_equals(arrays.get_from(items, 1, 1), { 1 })
+    luaunit.assert_equals(arrays.get_from(items, 1, 0), { 1 })
     luaunit.assert_equals(arrays.get_from(items, 0, 0), {})
   end,
 }
