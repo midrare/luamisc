@@ -261,11 +261,19 @@ function module.filter(items, pred, invert)
   module.remove_if(items, pred, not invert)
 end
 
----@param items any[] items to transform
----@param f fun(a: any): any transformation to apply
+---@param items? any[] items to transform
+---@param f? fun(a: any): any transformation to apply
 function module.transform(items, f)
-  for k, v in pairs(items) do
-    items[k] = f(v)
+  if items == nil or f == nil then
+    return
+  end
+  local idx = 1
+  for i = 1, #items do
+    local value = f(items[i])
+    if value ~= nil then
+      items[idx] = value
+      idx = idx + 1
+    end
   end
 end
 

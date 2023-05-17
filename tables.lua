@@ -119,6 +119,17 @@ function module.has_keys(tbl, ...)
   return true
 end
 
+---@param items? any[] items to transform
+---@param f? fun(a: any): any transformation to apply
+function module.transform(items, f)
+  if items == nil or f == nil then
+    return
+  end
+  for k, v in pairs(items) do
+    items[k] = f(v)
+  end
+end
+
 local function overwrite(src, target)
   for k, v in pairs(src) do
     if type(v) == "table" then
