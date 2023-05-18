@@ -370,14 +370,14 @@ function M.file_id(filename)
 
   local file_id = nil
 
-  if (not file_id or file_id <= 0) and is_windows and _in_path("fsutil") then
+  if (not file_id or file_id < 0) and is_windows and _in_path("fsutil") then
     local output = _exec("fsutil file queryFileID \""
       .. _str_escape(filename) .. "\"")
     output = output and output:match("%s+(0x[a-fA-F0-9]+)%s*$") or nil
     file_id = tonumber(output)
   end
 
-  if not file_id or file_id <= 0 then
+  if not file_id or file_id < 0 then
     return nil
   end
 
