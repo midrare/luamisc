@@ -282,4 +282,27 @@ function M.remove(items, value, invert)
   end, invert)
 end
 
+---@param items any[] items to reorder as an array
+function M.canonicalize(items)
+  local keys = {}
+  for k, _ in pairs(items) do
+    table.insert(keys, k)
+  end
+  table.sort(keys)
+
+  local old = {}
+  local base = 1
+  for _, key in ipairs(keys) do
+    old[base] = items[base]
+
+    if old[key] ~= nil then
+      items[base] = old[key]
+    else
+      items[base] = items[key]
+    end
+
+    base = base + 1
+  end
+end
+
 return M
