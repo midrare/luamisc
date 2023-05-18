@@ -16,6 +16,7 @@ local function _exec(cmd)
     return nil
   end
 
+  pipe:flush()
   local result = pipe:read("*a")
   pipe:close()
 
