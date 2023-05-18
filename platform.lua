@@ -37,7 +37,7 @@ local function _to_lines(s)
   return lines
 end
 
-local function _strip(s)
+local function _str_strip(s)
   return s:gsub("^%s+", ""):gsub("%s+$", "")
 end
 
@@ -51,6 +51,11 @@ local function _read_file(filename)
   file:close()
 
   return data
+end
+
+local function _is_file(filename)
+  local f = io.open(filename, "r")
+  return f ~= nil and io.close(f)
 end
 
 ---@return integer? procs number of processors detected
@@ -130,8 +135,8 @@ function M.read_winreg(key)
       -- line specifies a value
       local name, type_, value = line:match("^%s+(.+)%s+(REG_[%w_]+)%s+(.*)$")
       if name and type_ then
-        name = _strip(name)
-        value = _strip(value)
+        name = _str_strip(name)
+        value = _str_strip(value)
 
         local entry = { type = type_, value = value }
 
@@ -143,7 +148,7 @@ function M.read_winreg(key)
       end
     elseif line:match("^[^%s]") then
       -- line specifies a sub-key
-      local keyname = _strip(line)
+      local keyname = _str_strip(line)
       if keyname and #keyname > 0 then
         table.insert(subkeys, keyname)
       end
@@ -196,15 +201,15 @@ local function _get_macos_machine_id()
   if not match then
     return nil
   end
-  return _strip(match)
+  return _str_strip(match)
 end
 
 local function _get_linux_machine_id()
   local mach_id = _read_file("/var/lib/dbus/machine-id")
-  mach_id = mach_id and _strip(mach_id) or nil
+  mach_id = mach_id and _str_strip(mach_id) or nil
   if not mach_id or #mach_id <= 0 then
     mach_id = _read_file("/etc-machine-id")
-    mach_id = mach_id and _strip(mach_id) or nil
+    mach_id = mach_id and _str_strip(mach_id) or nil
   end
   if not mach_id or #mach_id <= 0 then
     return nil
@@ -214,11 +219,11 @@ end
 
 local function _get_bsd_machine_id()
   local mach_id = _read_file("/etc/hostid")
-  mach_id = mach_id and _strip(mach_id) or nil
+  mach_id = mach_id and _str_strip(mach_id) or nil
 
   if not mach_id then
     local output = _exec("kenv -q smbios.system.uuid")
-    mach_id = output and _strip(output) or nil
+    mach_id = output and _str_strip(output) or nil
   end
 
   return mach_id
@@ -237,6 +242,57 @@ function M.machine_id()
   end
 
   return mach_id
+end
+
+---@param syspath? string path string or nil to use $PATH env var
+---@return string[] path array of dirs found in path
+function M.path(syspath)
+  syspath = syspath or os.getenv("PATH")
+
+  local dirs = {}
+
+  while syspath and #syspath > 0 do
+    local pat = "^%s*(.-)%s*[;:][;:%s]*"  -- unix path
+    if syspath:match("^%s*[a-zA-Z]:[\\/]") then
+      pat = "^%s*([a-zA-Z]:[\\/].-)%s*[;:][;:%s]*"  -- win path
+    end
+
+    local _, stop, dir = syspath:find(pat)
+    if stop then
+      syspath = syspath:sub(stop + 1)
+    else
+      dir = _str_strip(syspath):gsub("[;:%s]+$", "")
+      syspath = nil
+    end
+
+    if dir and #dir > 0 then
+      table.insert(dirs, dir)
+    end
+  end
+
+  return dirs
+end
+
+
+---@param exe string executable name
+---@param syspath? string|string[] $PATH to search. default is use env var
+---@return string? filename path to executable if found
+function M.in_path(exe, syspath)
+  local sep = is_windows and "\\" or "/"
+  if type(syspath) ~= "table" then
+    syspath = M.path(syspath)
+  end
+
+  for _, dir in ipairs(syspath) do
+    local filename = dir .. sep .. exe
+    if _is_file(filename) then
+      return filename
+    elseif is_windows and _is_file(filename .. ".exe") then
+      return filename .. ".exe"
+    end
+  end
+
+  return nil
 end
 
 return M
