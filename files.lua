@@ -77,10 +77,15 @@ local function _str_escape(s)
   return s:gsub('"', '\"')
 end
 
-local function _is_filename_sane(filename)
-  return not (filename:match("[^a-zA-Z0-9/\\%.%-_'()%[%] ]") and true or false)
+local function _is_file(filename)
+  local f = io.open(filename, "r")
+  return f ~= nil and io.close(f)
 end
 
+local function _is_filename_sane(filename)
+  local s = filename:gsub("^%s*[a-zA-Z]:[\\/]?", "")
+  return not (s:match("[^a-zA-Z0-9/\\%.%-_'()%[%] ]") and true)
+end
 
 local function _exec(cmd, strip)
   strip = strip ~= false
@@ -89,6 +94,7 @@ local function _exec(cmd, strip)
     return nil
   end
 
+  pipe:flush()
   local result = pipe:read("*a")
   pipe:close()
 
@@ -197,6 +203,57 @@ function M.write_json(filename, data)
   M.write_file(filename, json_str)
 end
 
+---@param syspath? string path string or nil to use $PATH env var
+---@return string[] path array of dirs found in path
+function M.path(syspath)
+  syspath = syspath or os.getenv("PATH")
+
+  local dirs = {}
+
+  while syspath and #syspath > 0 do
+    local pat = "^%s*(.-)%s*[;:][;:%s]*"  -- unix path
+    if syspath:match("^%s*[a-zA-Z]:[\\/]") then
+      pat = "^%s*([a-zA-Z]:[\\/].-)%s*[;:][;:%s]*"  -- win path
+    end
+
+    local _, stop, dir = syspath:find(pat)
+    if stop then
+      syspath = syspath:sub(stop + 1)
+    else
+      dir = _str_strip(syspath):gsub("[;:%s]+$", "")
+      syspath = nil
+    end
+
+    if dir and #dir > 0 then
+      table.insert(dirs, dir)
+    end
+  end
+
+  return dirs
+end
+
+
+---@param exe string executable name
+---@param syspath? string|string[] $PATH to search. default is use env var
+---@return string? filename path to executable if found
+function M.in_path(exe, syspath)
+  local sep = is_windows and "\\" or "/"
+  if type(syspath) ~= "table" then
+    syspath = M.path(syspath)
+  end
+
+  for _, dir in ipairs(syspath) do
+    local filename = dir .. sep .. exe
+    if _is_file(filename) then
+      return filename
+    elseif is_windows and _is_file(filename .. ".exe") then
+      return filename .. ".exe"
+    end
+  end
+
+  return nil
+end
+
 
 ---@param filename string path to file
 ---@return number? epoch_secs secs since unix epoch. may be a float
@@ -208,20 +265,22 @@ function M.created(filename)
   local epoch_secs = nil
 
   -- allow windows in case gnu port is installed
-  if not epoch_secs or epoch_secs <= 0 then
+  if (not epoch_secs or epoch_secs <= 0) and M.in_path("stat") then
     local output = _exec("stat --format %W \""
       .. _str_escape(filename) .. "\"")
     epoch_secs = tonumber(output)
   end
 
-  if (not epoch_secs or epoch_secs <= 0) and is_windows then
-    local output = _exec("powershell -NoProfile -NoLogo -Command '(Get-Item \""
-      .. _str_escape(filename)
-      .. "\").CreationTime | Get-Date -UFormat %s'")
+  if (not epoch_secs or epoch_secs <= 0) and is_windows
+    and M.in_path("powershell") then
+    local output = _exec("powershell -NoProfile -NoLogo -Command "
+      .. "\"(Get-Item \\\"" .. filename:gsub('"', '\\"')
+      .. "\\\").CreationTime | Get-Date -UFormat %s\"")
     epoch_secs = tonumber(output)
   end
 
-  if (not epoch_secs or epoch_secs <= 0) and not is_windows then
+  if (not epoch_secs or epoch_secs <= 0) and not is_windows
+    and M.in_path("find") then
     local output = _exec("find \"" .. _str_escape(filename)
       .. "\" -printf \"%Bs\"")
     epoch_secs = tonumber(output)
@@ -241,26 +300,29 @@ function M.modified(filename)
   local epoch_secs = nil
 
   -- allow windows in case gnu port is installed
-  if not epoch_secs or epoch_secs <= 0 then
+  if (not epoch_secs or epoch_secs <= 0) and M.in_path("stat") then
     local output = _exec("stat --format %Y \""
       .. _str_escape(filename) .. "\"")
     epoch_secs = tonumber(output)
   end
 
-  if (not epoch_secs or epoch_secs <= 0) and is_windows then
-    local output = _exec("powershell -NoProfile -NoLogo -Command '(Get-Item \""
-      .. _str_escape(filename)
-      .. "\").LastWriteTime | Get-Date -UFormat %s'")
+  if (not epoch_secs or epoch_secs <= 0) and is_windows
+    and M.in_path("powershell") then
+    local output = _exec("powershell -NoProfile -NoLogo -Command "
+      .. "\"(Get-Item \\\"" .. filename:gsub('"', '\\"')
+      .. "\\\").LastWriteTime | Get-Date -UFormat %s\"")
     epoch_secs = tonumber(output)
   end
 
-  if (not epoch_secs or epoch_secs <= 0) and not is_windows then
+  if (not epoch_secs or epoch_secs <= 0) and not is_windows
+    and M.in_path("date") then
     local output = _exec("date --utc +%s -r \""
       .. _str_escape(filename) .. "\"")
     epoch_secs = tonumber(output)
   end
 
-  if (not epoch_secs or epoch_secs <= 0) and not is_windows then
+  if (not epoch_secs or epoch_secs <= 0) and not is_windows
+    and M.in_path("find") then
     local output = _exec("find \"" .. _str_escape(filename)
       .. "\" -printf \"%Ts\"")
     epoch_secs = tonumber(output)
@@ -283,14 +345,14 @@ function M.inode(filename)
 
   local inode = nil
 
-  if not inode or inode <= 0 then
+  if (not inode or inode <= 0) and M.in_path("stat") then
     -- allow windows in case gow or equivalent is installed
     local output = _exec("stat --format %i \""
       .. _str_escape(filename) .. "\"")
     inode = tonumber(output)
   end
 
-  if (not inode or inode <= 0) and not is_windows then
+  if (not inode or inode <= 0) and not is_windows and M.in_path("find") then
     local output = _exec("find \"" .. _str_escape(filename)
       .. "\" -printf \"%i\"")
     inode = tonumber(output)
@@ -313,7 +375,7 @@ function M.file_id(filename)
 
   local file_id = nil
 
-  if (not file_id or file_id <= 0) and is_windows then
+  if (not file_id or file_id <= 0) and is_windows and M.in_path("fsutil") then
     local output = _exec("fsutil file queryFileID \""
       .. _str_escape(filename) .. "\"")
     output = output and output:match("%s+(0x[a-fA-F0-9]+)%s*$") or nil
@@ -326,6 +388,5 @@ function M.file_id(filename)
 
   return file_id
 end
-
 
 return M
