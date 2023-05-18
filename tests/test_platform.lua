@@ -17,7 +17,13 @@ local function get_script_dir(source)
   if pipe then
     pipe:close()
   end
-  return cwd .. "/" .. script:gsub("[\\/]+[^\\/]*$", "")
+
+  local dir = cwd or "."
+  if script:match("[\\/][^\\/]+$") then
+    dir = dir .. "/" .. script:gsub("[\\/]+[^\\/]*$", "")
+  end
+
+  return dir
 end
 
 package.path = package.path
