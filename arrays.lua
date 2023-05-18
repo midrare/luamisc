@@ -223,7 +223,7 @@ function M.uniqify(items, key)
     if not seen[k] then
       seen[k] = true
       items[base] = e
-      base = i + 1
+      base = base + 1
     end
   end
 
