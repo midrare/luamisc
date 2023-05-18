@@ -48,6 +48,10 @@ function M.itoa(n, charset)
   return s
 end
 
+---@param s string string to split by newline
+---@param strip? boolean true to remove surrounding whitespace
+---@param blank? boolean false to disallow whitespace-only lines
+---@return string[] lines array of lines
 function M.lines(s, strip, blank)
   strip = strip or false
   blank = blank ~= false
