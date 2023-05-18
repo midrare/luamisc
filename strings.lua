@@ -48,4 +48,28 @@ function M.itoa(n, charset)
   return s
 end
 
+function M.lines(s, strip, blank)
+  strip = strip or false
+  blank = blank ~= false
+  local lines = {}
+
+  while s and #s > 0 do
+    local eol, _ = s:find("\n", 1, true)
+    local line = eol and s:sub(1, eol) or s
+    s = eol and s:sub(eol + 1) or ""
+
+    line = line:gsub("\r$", "")
+    if strip then
+      line = line:gsub("^%s+", ""):gsub("%s+$", "")
+    end
+
+    if blank or not line:match("^%s*$") then
+      table.insert(lines, line)
+    end
+  end
+
+  return lines
+end
+
+
 return M
