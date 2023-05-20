@@ -305,4 +305,16 @@ function M.canonicalize(items)
   end
 end
 
+function M.pack(...)
+  local a = {}
+  for i = 1, select("#", ...) do
+    local val = select(i, ...)
+    -- nil breaks ipairs() so we ignore
+    if val ~= nil then
+      table.insert(a, val)
+    end
+  end
+  return a
+end
+
 return M
