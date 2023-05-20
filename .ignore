@@ -1,4 +1,5 @@
 /.hookspace
+/base64.lua
 /date.lua
 /json.lua
 /sha2.lua
