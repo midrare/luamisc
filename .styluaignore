@@ -1,3 +1,4 @@
 /date.lua
 /json.lua
+/sha2.lua
 /yaml.lua
