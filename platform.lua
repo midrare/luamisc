@@ -253,9 +253,9 @@ function M.path(syspath)
   local dirs = {}
 
   while syspath and #syspath > 0 do
-    local pat = "^%s*(.-)%s*[;:][;:%s]*"  -- unix path
+    local pat = "^%s*(.-)%s*[;:][;:%s]*" -- unix path
     if syspath:match("^%s*[a-zA-Z]:[\\/]") then
-      pat = "^%s*([a-zA-Z]:[\\/].-)%s*[;:][;:%s]*"  -- win path
+      pat = "^%s*([a-zA-Z]:[\\/].-)%s*[;:][;:%s]*" -- win path
     end
 
     local _, stop, dir = syspath:find(pat)
@@ -273,7 +273,6 @@ function M.path(syspath)
 
   return dirs
 end
-
 
 ---@param exe string executable name
 ---@param syspath? string|string[] $PATH to search. default is use env var

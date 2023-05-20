@@ -4,7 +4,6 @@ local alnum = "abcdefghijklmnopqrstuvwxyz"
   .. "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
   .. "1234567890"
 
-
 ---@param len integer string length
 ---@param charset? string character set to use
 ---@return string random generated string
@@ -21,11 +20,9 @@ function M.random(len, charset)
   return result
 end
 
-
 function M.strip(s)
   return s:gsub("^[%s]+", ""):gsub("[%s]+$", "")
 end
-
 
 ---@param n integer number to convert
 ---@param charset? string character set to use
@@ -39,7 +36,7 @@ function M.itoa(n, charset)
   end
 
   local s = ""
-  while (n > 0) do
+  while n > 0 do
     local idx = n % #charset
     s = charset:sub(idx, idx) .. s
     n = math.floor(n / #charset)
@@ -74,6 +71,5 @@ function M.lines(s, strip, blank)
 
   return lines
 end
-
 
 return M

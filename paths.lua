@@ -233,7 +233,6 @@ function M.relpath(filename, origin, inscase)
   return table.concat(components, path_sep)
 end
 
-
 ---@param ext string? file extension
 ---@return string? ext canonicalized file extension
 function M.canonical_ext(ext)
