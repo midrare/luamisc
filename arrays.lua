@@ -305,6 +305,8 @@ function M.canonicalize(items)
   end
 end
 
+---@vararg ... elements to pack
+---@return any[] items elements packed into array
 function M.pack(...)
   local a = {}
   for i = 1, select("#", ...) do
