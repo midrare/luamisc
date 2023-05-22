@@ -28,6 +28,7 @@ local old_package_path = package.path
 package.path = get_script_dir() .. "/?.lua"
 M.arrays = require("arrays")
 M.base64 = require("base64")
+M.bit = require("bit")
 M.date = require("date")
 M.files = require("files")
 M.json = require("json")
