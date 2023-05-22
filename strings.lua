@@ -1,5 +1,35 @@
 local M = {}
 
+local function get_script_dir(source)
+  source = source or debug.getinfo(1).source
+  local script = source:gsub("^@", ""):gsub("[\\/]", "/")
+  if script:match("^[a-zA-Z]:[\\/]") then
+    return "" .. script:gsub("[\\/]+[^\\/]*$", "")
+  end
+  local pwd_cmd = package.config:sub(1, 1) == "/" and "pwd" or "echo %cd%"
+  local pipe = io.popen(pwd_cmd)
+  local cwd = pipe and pipe:read("*l"):gsub("[\\/]+$", ""):gsub("[\\/]", "/")
+  if pipe then
+    pipe:close()
+  end
+
+  local dir = cwd or "."
+  if script:match("[\\/][^\\/]+$") then
+    dir = dir .. "/" .. script:gsub("[\\/]+[^\\/]*$", "")
+  end
+
+  return dir
+end
+
+local utf8 = utf8 or nil
+if not utf8 then
+  local old_package_path = package.path
+  package.path = get_script_dir() .. "/?.lua"
+  utf8 = require("utf8")
+  package.path = old_package_path
+end
+
+
 local alnum = "abcdefghijklmnopqrstuvwxyz"
   .. "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
   .. "1234567890"
@@ -70,6 +100,21 @@ function M.lines(s, strip, blank)
   end
 
   return lines
+end
+
+---@param s string utf-8 string
+---@param i integer substring start
+---@param j integer? substring end
+function M.sub(s, i, j)
+  local start = utf8.offset(s, i) or 1
+  local stop = j and (utf8.offset(s, j + 1) - 1) or nil
+  return s:sub(start, stop)
+end
+
+---@param s string string to measure
+---@return integer len string length
+function M.len(s)
+  return utf8.len(s) or 0
 end
 
 return M
