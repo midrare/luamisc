@@ -37,8 +37,8 @@ local luaunit = require("luaunit")
 local arrays = require("arrays")
 
 ---@diagnostic disable-next-line: unused-function, unused-local
-TEST_ARRAYS = {
-  test_get_from_forwards = function()
+TEST_GET_FROM = {
+  test_forwards = function()
     local items = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }
     luaunit.assert_equals(arrays.get_from(items, 0, 0), {})
     luaunit.assert_equals(arrays.get_from(items, 0, 1), { 1 })
@@ -55,7 +55,7 @@ TEST_ARRAYS = {
     luaunit.assert_equals(arrays.get_from(items, 99, 999), {})
     luaunit.assert_equals(arrays.get_from(items, 999, 99), {})
   end,
-  test_get_from_backwards = function()
+  test_backwards = function()
     local items = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }
     luaunit.assert_equals(arrays.get_from(items, 99, 999), {})
     luaunit.assert_equals(arrays.get_from(items, 999, 99), {})
