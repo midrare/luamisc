@@ -37,6 +37,7 @@ M.platform = require("platform")
 M.sha2 = require("sha2")
 M.strings = require("strings")
 M.tables = require("tables")
+M.utf8 = require("utf8")
 M.yaml = require("yaml")
 package.path = old_package_path
 
