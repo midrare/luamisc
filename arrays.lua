@@ -319,4 +319,21 @@ function M.pack(...)
   return a
 end
 
+---@param items any[] array to iterate over
+---@param f (fun(any, any): any)? how to accumulate
+---@param initial any? initial accumulator value
+---@return any acc resultant value
+function M.reduce(items, f, initial)
+  if initial == nil then
+    initial = items[1]
+  end
+  f = f or function(e, acc) return acc + e end
+
+  local accumulator = initial
+  for _, e in ipairs(items) do
+    accumulator = f(e, accumulator)
+  end
+  return accumulator
+end
+
 return M
