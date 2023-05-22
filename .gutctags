@@ -1,6 +1,8 @@
 --exclude=.quickjump.json
 --exclude=*/.hookspace/*
---exclude=*/json.lua
+--exclude=*/base64.lua
 --exclude=*/date.lua
+--exclude=*/json.lua
 --exclude=*/sha2.lua
+--exclude=*/utf8.lua
 --exclude=*/yaml.lua

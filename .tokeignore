@@ -3,4 +3,5 @@
 /date.lua
 /json.lua
 /sha2.lua
+/utf8.lua
 /yaml.lua
