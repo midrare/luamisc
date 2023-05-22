@@ -1,724 +1,201 @@
---[[**************************************************************************]]
--- base64.lua
--- Copyright 2014 Ernest R. Ewert
---
---  This Lua module contains the implementation of a Lua base64 encode
---  and decode library.
---
---  The library exposes these methods.
---
---      Method      Args
---      ----------- ----------------------------------------------
---      encode      String in / out
---      decode      String in / out
---
---      encode      String, function(value) predicate
---      decode      String, function(value) predicate
---
---      encode      file, function(value) predicate
---      deocde      file, function(value) predicate
---
---      encode      file, file
---      deocde      file, file
---
---      alpha       alphabet, term char
---
+--[[
+
+ base64 -- v1.5.3 public domain Lua base64 encoder/decoder
+ no warranty implied; use at your own risk
+
+ Needs bit32.extract function. If not present it's implemented using BitOp
+ or Lua 5.3 native bit operators. For Lua 5.1 fallbacks to pure Lua
+ implementation inspired by Rici Lake's post:
+   http://ricilake.blogspot.co.uk/2007/10/iterating-bits-in-lua.html
+
+ author: Ilya Kolbin (iskolbin@gmail.com)
+ url: github.com/iskolbin/lbase64
+
+ COMPATIBILITY
+
+ Lua 5.1+, LuaJIT
+
+ LICENSE
+
+ See end of file for license information.
+
+--]]
 
 
---------------------------------------------------------------------------------
--- known_base64_alphabets
---
---
-local known_base64_alphabets=
-{
-    base64= -- RFC 2045 (Ignores max line length restrictions)
-    {
-        _alpha="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/",
-        _strip="[^%a%d%+%/%=]",
-        _term="="
-    },
+local base64 = {}
 
-    base64noterm= -- RFC 2045 (Ignores max line length restrictions)
-    {
-        _alpha="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/",
-        _strip="[^%a%d%+%/]",
-        _term=""
-    },
-
-    base64url= -- RFC 4648 'base64url'
-    {
-        _alpha="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_",
-        _strip="[^%a%d%+%-%_=]",
-        _term=""
-    },
-}
-local c_alpha=known_base64_alphabets.base64
-local pattern_strip
-
---[[**************************************************************************]]
---[[****************************** Encoding **********************************]]
---[[**************************************************************************]]
-
-
--- Precomputed tables (compromise using more memory for speed)
-local b64e    -- 6 bit patterns to ANSI 'char' values
-local b64e_a  -- ready to use
-local b64e_a2 -- byte addend
-local b64e_b1 -- byte addend
-local b64e_b2 -- byte addend
-local b64e_c1 -- byte addend
-local b64e_c  -- ready to use
-
-
--- Tail padding values
-local tail_padd64=
-{
-    "==",   -- two bytes modulo
-    "="     -- one byte modulo
-}
-
-
---------------------------------------------------------------------------------
--- e64
---
---  Helper function to convert three eight bit values into four encoded
---  6 (significant) bit values.
---
---                 7             0 7             0 7             0
---             e64(a a a a a a a a,b b b b b b b b,c c c c c c c c)
---                 |           |           |           |
---  return    [    a a a a a a]|           |           |
---                        [    a a b b b b]|           |
---                                    [    b b b b c c]|
---                                                [    c c c c c c]
---
-local function e64( a, b, c )
-    -- Return pre-calculated values for encoded value 1 and 4
-    -- Get the pre-calculated extractions for value 2 and 3, look them
-    -- up and return the proper value.
-    --
-    return  b64e_a[a],
-            b64e[ b64e_a2[a]+b64e_b1[b] ],
-            b64e[ b64e_b2[b]+b64e_c1[c] ],
-            b64e_c[c]
+local extract = _G.bit32 and _G.bit32.extract -- Lua 5.2/Lua 5.3 in compatibility mode
+if not extract then
+	if _G.bit then -- LuaJIT
+		local shl, shr, band = _G.bit.lshift, _G.bit.rshift, _G.bit.band
+		extract = function( v, from, width )
+			return band( shr( v, from ), shl( 1, width ) - 1 )
+		end
+	elseif _G._VERSION == "Lua 5.1" then
+		extract = function( v, from, width )
+			local w = 0
+			local flag = 2^from
+			for i = 0, width-1 do
+				local flag2 = flag + flag
+				if v % flag2 >= flag then
+					w = w + 2^i
+				end
+				flag = flag2
+			end
+			return w
+		end
+	else -- Lua 5.3+
+		extract = load[[return function( v, from, width )
+			return ( v >> from ) & ((1 << width) - 1)
+		end]]()
+	end
 end
 
 
---------------------------------------------------------------------------------
--- encode_tail64
---
---  Send a tail pad value to the output predicate provided.
---
-local function encode_tail64( out, x, y )
-    -- If we have a number of input bytes that isn't exactly divisible
-    -- by 3 then we need to pad the tail
-    if x ~= nil then
-        local a,b,r = x,0,1
-
-        if y ~= nil then
-            r = 2
-            b = y
-        end
-
-        -- Encode three bytes of info, with the tail byte as zeros and
-        -- ignore any fourth encoded ASCII value. (We should NOT have a
-        -- forth byte at this point.)
-        local b1, b2, b3 = e64( a, b, 0 )
-
-        -- always add the first 2 six bit values to the res table
-        -- 1 remainder input byte needs 8 output bits
-        local tail_value = string.char( b1, b2 )
-
-        -- two remainder input bytes will need 18 output bits (2 as pad)
-        if r == 2 then
-            tail_value=tail_value..string.char( b3 )
-        end
-
-        -- send the last 4 byte sequence with appropriate tail padding
-        out( tail_value .. tail_padd64[r] )
-    end
+function base64.makeencoder( s62, s63, spad )
+	local encoder = {}
+	for b64code, char in pairs{[0]='A','B','C','D','E','F','G','H','I','J',
+		'K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y',
+		'Z','a','b','c','d','e','f','g','h','i','j','k','l','m','n',
+		'o','p','q','r','s','t','u','v','w','x','y','z','0','1','2',
+		'3','4','5','6','7','8','9',s62 or '+',s63 or'/',spad or'='} do
+		encoder[b64code] = char:byte()
+	end
+	return encoder
 end
 
-
---------------------------------------------------------------------------------
--- encode64_io_iterator
---
---  Create an io input iterator to read an input file and split values for
---  proper encoding.
---
-local function encode64_io_iterator(file)
-
-    assert( io.type(file)  == "file", "argument must be readable file handle" )
-    assert( file.read ~= nil,         "argument must be readable file handle" )
-
-    local ii = { } -- Table for the input iterator
-
-    setmetatable(ii,{ __tostring=function() return "base64.io_iterator" end})
-
-    -- Begin returns an input read iterator
-    --
-    function ii.begin()
-        local sb  = string.byte
-
-        -- The iterator returns three bytes from the file for encoding or nil
-        -- when the end of the file has been reached.
-        --
-        return function()
-            s = file:read(3)
-            if s ~= nil and #s == 3 then
-                return sb(s,1,3)
-            end
-            return nil
-        end
-    end
-
-    -- The tail method on the iterator allows the routines to run faster
-    -- because each sequence of bytes doesn't have to test for EOF.
-    --
-    function ii.tail()
-        -- If one or two "overflow" bytes exist, return those.
-        --
-        if s ~= nil then return s:byte(1,2) end
-    end
-
-    return ii
+function base64.makedecoder( s62, s63, spad )
+	local decoder = {}
+	for b64code, charcode in pairs( base64.makeencoder( s62, s63, spad )) do
+		decoder[charcode] = b64code
+	end
+	return decoder
 end
 
+local DEFAULT_ENCODER = base64.makeencoder()
+local DEFAULT_DECODER = base64.makedecoder()
 
---------------------------------------------------------------------------------
--- encode64_with_ii
---
---      Convert the value provided by an encode iterator that provides a begin
---      method, a tail method, and an iterator that returns three bytes for
---      each call until at the end. The tail method should return either 1 or 2
---      tail bytes (for source values that are not evenly divisible by three).
---
-local function encode64_with_ii( ii, out )
-    local sc=string.char
+local char, concat = string.char, table.concat
 
-    for a, b, c in ii.begin() do
-        out( sc( e64( a, b, c ) ) )
-    end
-
-    encode_tail64( out, ii.tail() )
-
+function base64.encode( str, encoder, usecaching )
+	encoder = encoder or DEFAULT_ENCODER
+	local t, k, n = {}, 1, #str
+	local lastn = n % 3
+	local cache = {}
+	for i = 1, n-lastn, 3 do
+		local a, b, c = str:byte( i, i+2 )
+		local v = a*0x10000 + b*0x100 + c
+		local s
+		if usecaching then
+			s = cache[v]
+			if not s then
+				s = char(encoder[extract(v,18,6)], encoder[extract(v,12,6)], encoder[extract(v,6,6)], encoder[extract(v,0,6)])
+				cache[v] = s
+			end
+		else
+			s = char(encoder[extract(v,18,6)], encoder[extract(v,12,6)], encoder[extract(v,6,6)], encoder[extract(v,0,6)])
+		end
+		t[k] = s
+		k = k + 1
+	end
+	if lastn == 2 then
+		local a, b = str:byte( n-1, n )
+		local v = a*0x10000 + b*0x100
+		t[k] = char(encoder[extract(v,18,6)], encoder[extract(v,12,6)], encoder[extract(v,6,6)], encoder[64])
+	elseif lastn == 1 then
+		local v = str:byte( n )*0x10000
+		t[k] = char(encoder[extract(v,18,6)], encoder[extract(v,12,6)], encoder[64], encoder[64])
+	end
+	return concat( t )
 end
 
-
---------------------------------------------------------------------------------
--- encode64_with_predicate
---
---      Implements the basic raw data --> base64 conversion. Each three byte
---      sequence in the input string is converted to the encoded string and
---      given to the predicate provided in 4 output byte chunks. This method
---      is slightly faster for traversing existing strings in memory.
---
-local function encode64_with_predicate( raw, out )
-    local rem=#raw%3     -- remainder
-    local len=#raw-rem   -- 3 byte input adjusted
-    local sb=string.byte -- Mostly notational (slight performance)
-    local sc=string.char -- Mostly notational (slight performance)
-
-    -- Main encode loop converts three input bytes to 4 base64 encoded
-    -- ACSII values and calls the predicate with the value.
-    for i=1,len,3 do
-        -- This really isn't intended as obfuscation. It is more about
-        -- loop optimization and removing temporaries.
-        --
-        out( sc( e64( sb( raw ,i , i+3 ) ) ) )
-        --   |   |    |
-        --   |   |    byte i to i + 3
-        --   |   |
-        --   |   returns 4 encoded values
-        --   |
-        --   creates a string with the 4 returned values
-    end
-
-    -- If we have a number of input bytes that isn't exactly divisible
-    -- by 3 then we need to pad the tail
-    if rem > 0 then
-        local x, y = sb( raw, len+1 )
-
-        if rem > 1 then
-            y = sb( raw, len+2 )
-        end
-
-        encode_tail64( out, x, y )
-    end
+function base64.decode( b64, decoder, usecaching )
+	decoder = decoder or DEFAULT_DECODER
+	local pattern = '[^%w%+%/%=]'
+	if decoder then
+		local s62, s63
+		for charcode, b64code in pairs( decoder ) do
+			if b64code == 62 then s62 = charcode
+			elseif b64code == 63 then s63 = charcode
+			end
+		end
+		pattern = ('[^%%w%%%s%%%s%%=]'):format( char(s62), char(s63) )
+	end
+	b64 = b64:gsub( pattern, '' )
+	local cache = usecaching and {}
+	local t, k = {}, 1
+	local n = #b64
+	local padding = b64:sub(-2) == '==' and 2 or b64:sub(-1) == '=' and 1 or 0
+	for i = 1, padding > 0 and n-4 or n, 4 do
+		local a, b, c, d = b64:byte( i, i+3 )
+		local s
+		if usecaching then
+			local v0 = a*0x1000000 + b*0x10000 + c*0x100 + d
+			s = cache[v0]
+			if not s then
+				local v = decoder[a]*0x40000 + decoder[b]*0x1000 + decoder[c]*0x40 + decoder[d]
+				s = char( extract(v,16,8), extract(v,8,8), extract(v,0,8))
+				cache[v0] = s
+			end
+		else
+			local v = decoder[a]*0x40000 + decoder[b]*0x1000 + decoder[c]*0x40 + decoder[d]
+			s = char( extract(v,16,8), extract(v,8,8), extract(v,0,8))
+		end
+		t[k] = s
+		k = k + 1
+	end
+	if padding == 1 then
+		local a, b, c = b64:byte( n-3, n-1 )
+		local v = decoder[a]*0x40000 + decoder[b]*0x1000 + decoder[c]*0x40
+		t[k] = char( extract(v,16,8), extract(v,8,8))
+	elseif padding == 2 then
+		local a, b = b64:byte( n-3, n-2 )
+		local v = decoder[a]*0x40000 + decoder[b]*0x1000
+		t[k] = char( extract(v,16,8))
+	end
+	return concat( t )
 end
 
-
---------------------------------------------------------------------------------
--- encode64_tostring
---
---      Convenience method that accepts a string value and returns the
---      encoded version of that string.
---
-local function encode64_tostring(raw)
-
-    local sb={} -- table to build string
-
-    local function collection_predicate(v)
-        sb[#sb+1]=v
-    end
-
-    -- Test with an 818K string in memory. Result is 1.1M of data.
-    --
-    --      lua_base64      base64 (gnu 8.21)
-    --      202ms           54ms
-    --      203ms           48ms
-    --      204ms           50ms
-    --      203ms           42ms
-    --      205ms           46ms
-    --
-    encode64_with_predicate( raw, collection_predicate )
-
-    return table.concat(sb)
-end
-
-
---[[**************************************************************************]]
---[[****************************** Decoding **********************************]]
---[[**************************************************************************]]
-
-
--- Precomputed tables (compromise using more memory for speed)
-local b64d    -- ANSI 'char' to right shifted bit pattern
-local b64d_a1 -- byte addend
-local b64d_a2 -- byte addend
-local b64d_b1 -- byte addend
-local b64d_b2 -- byte addend
-local b64d_c1 -- byte addend
-local b64d_z  -- zero
-
-
---------------------------------------------------------------------------------
--- d64
---
---  Helper function to convert four six bit values into three full eight
---  bit values. Input values are the integer expression of the six bit value
---  encoded in the original base64 encoded string.
---
---     d64( _ _1 1 1 1 1 1,
---             |       _ _ 2 2 2 2 2 2,
---             |           |       _ _ 3 3 3 3 3 3,
---             |           |           |       _ _ 4 4 4 4 4 4)
---             |           |           |           |
---  return ', [1 1 1 1 1 1 2 2]        |           |
---         ',                 [2 2 2 2 3 3 3 3]    |
---         '                                  [3 3 4 4 4 4 4 4]
---
-local function d64( b1, b2, b3, b4 )
-    -- We can get away with addition instead of anding the values together
-    -- because there are no  overlapping bit patterns.
-    --
-    return
-        b64d_a1[b1] + b64d_a2[b2],
-        b64d_b1[b2] + b64d_b2[b3],
-        b64d_c1[b3] + b64d[b4]
-end
-
-
---------------------------------------------------------------------------------
--- decode_tail64
---
---  Send the end of stream bytes that didn't get decoded via the main loop.
---
-local function decode_tail64( out, e1, e2 ,e3, e4 )
-
-    if tail_padd64[2] == "" or e4 == tail_padd64[2]:byte() then
-        local n3 = b64d_z
-
-        if e3 ~= nil and e3 ~= tail_padd64[2]:byte() then
-            n3 = e3
-        end
-
-        -- Unpack the six bit values into the 8 bit values
-        local b1, b2 = d64( e1, e2, n3, b64d_z )
-
-        -- And add them to the res table
-        if e3 ~= nil and e3 ~= tail_padd64[2]:byte() then
-            out( string.char( b1, b2 ) )
-        else
-            out( string.char( b1 ) )
-        end
-    end
-end
-
-
---------------------------------------------------------------------------------
--- decode64_io_iterator
---
---  Create an io input iterator to read an input file and split values for
---  proper decoding.
---
-local function decode64_io_iterator( file )
-
-    local ii = { }
-
-    -- An enumeration coroutine that handles the reading of an input file
-    -- to break data into proper pieces for building the original string.
-    --
-    local function enummerate( file )
-        local sc=string.char
-        local sb=string.byte
-        local ll="" -- last line storage
-        local len
-        local yield = coroutine.yield
-
-        -- Read a "reasonable amount" of data into the line buffer. Line by
-        -- line is not used so that a file with no line breaks doesn't
-        -- cause an inordinate amount of memory usage.
-        --
-        for cl in file:lines(2048) do
-            -- Reset the current line to contain valid chars and any previous
-            -- "leftover" bytes from the previous read
-            --
-            cl = ll .. cl:gsub(pattern_strip,"")
-            --   |     |
-            --   |     Remove "Invalid" chars (white space etc)
-            --   |
-            --   Left over from last line
-            --
-            len = (#cl-4)-(#cl%4)
-
-            -- see the comments in decode64_with_predicate for a rundown of
-            -- the results of this loop (sans the coroutine)
-            for i=1,len,4 do
-                yield( sc( d64( sb( cl, i, i+4 ) ) ) )
-            end
-
-            ll = cl:sub( len +1, #cl )
-        end
-
-        local l = #ll
-
-        if l >= 4 and ll:sub(-1) ~= tail_padd64[2] then
-            yield( sc( d64( sb( ll, 1, 4 ) ) ) )
-            l=l-4
-        end
-
-        if l > 0 then
-
-            local e1,e2,e3,e4 = ll:byte( 0 - l, -1 )
-
-            if e1 ~= nil then
-                decode_tail64( function(s) yield( s ) end, e1, e2, e3, e4 )
-            end
-        end
-
-    end
-
-    -- Returns an input iterator that is implemented as a coroutine. Each
-    -- yield of the co-routine sends reconstructed bytes to the loop handling
-    -- the iteration.
-    --
-    function ii.begin()
-        local co = coroutine.create( function() enummerate(file) end )
-
-        return function()
-            local code,res = coroutine.resume(co)
-            assert(code == true)
-            return res
-        end
-    end
-
-    return ii
-end
-
-
---------------------------------------------------------------------------------
--- decode64_with_ii
---
---      Convert the value provided by a decode iterator that provides a begin
---      method, a tail method, and an iterator that returns four (usable!) bytes
---      for each call until at the end.
---
-local function decode64_with_ii( ii, out )
-
-    -- Uses the iterator to pull values. Each reconstructed string
-    -- is sent to the output predicate.
-    --
-    for l in ii.begin() do out( l ) end
-
-end
-
-
---------------------------------------------------------------------------------
--- decode64_with_predicate
---
--- Decode an entire base64 encoded string in memory using the predicate for
--- output.
---
-local function decode64_with_predicate( raw, out )
-    -- Sanitize the input to strip characters that are not in the alphabet.
-    --
-    -- Note: This is a deviation from strict implementations where "bad data"
-    --       in the input stream is unsupported.
-    --
-    local san = raw:gsub(pattern_strip,"")
-    local len = #san-#san%4
-    local rem = #san-len
-    local sc  = string.char
-    local sb  = string.byte
-
-    if san:sub(-1,-1) == tail_padd64[2] then
-        rem = rem + 4
-        len = len - 4
-    end
-
-    for i=1,len,4 do
-        out( sc( d64( sb( san, i, i+4 ) ) ) )
-    end
-
-    if rem > 0 then
-        decode_tail64( out, sb( san, 0-rem, -1 ) )
-    end
-end
-
-
---------------------------------------------------------------------------------
--- decode64_tostring
---
---  Takes a string that is encoded in base64 and returns the decoded value in
---  a new string.
---
-local function decode64_tostring( raw )
-
-    local sb={} -- table to build string
-
-    local function collection_predicate(v)
-        sb[#sb+1]=v
-    end
-
-    decode64_with_predicate( raw, collection_predicate )
-
-    return table.concat(sb)
-end
-
-
---------------------------------------------------------------------------------
--- set_and_get_alphabet
---
---  Sets and returns the encode / decode alphabet.
---
---
-local function set_and_get_alphabet(alpha,term)
-
-    if alpha ~= nil then
-        local magic=
-        {
-    --        ["%"]="%%",
-            [" "]="% ",
-            ["^"]="%^",
-            ["$"]="%$",
-            ["("]="%(",
-            [")"]="%)",
-            ["."]="%.",
-            ["["]="%[",
-            ["]"]="%]",
-            ["*"]="%*",
-            ["+"]="%+",
-            ["-"]="%-",
-            ["?"]="%?",
-        }
-
-        c_alpha=known_base64_alphabets[alpha]
-        if c_alpha == nil then
-            c_alpha={ _alpha=alpha, _term=term }
-        end
-
-        assert( #c_alpha._alpha == 64,    "The alphabet ~must~ be 64 unique values."  )
-        assert( #c_alpha._term  <=  1,    "Specify zero or one termination character.")
-
-        b64d={}  -- Decode table alpha          -> right shifted int values
-        b64e={}  -- Encode table 0-63 (6 bits)  -> char table
-        local s=""
-        for i = 1,64 do
-            local byte = c_alpha._alpha:byte(i)
-            local str  = string.char(byte)
-            b64e[i-1]=byte
-            assert( b64d[byte] == nil, "Duplicate value '"..str.."'" )
-            b64d[byte]=i-1
-            s=s..str
-        end
-
-
-        local ext --Alias for extraction routine that avoids extra table lookups
-
-        if bit32 then
-            ext = bit32.extract -- slight speed, vast visual (IMO)
-        elseif bit then
-            local band = bit.band
-            local rshift = bit.rshift
-            ext =
-                function(n, field, width)
-                    width = width or 1
-                    return band(rshift(n, field), 2^width-1)
-                end
-        else
-            error("Neither Lua 5.2 bit32 nor LuaJit bit library found!")
-        end
-
-        -- preload encode lookup tables
-        b64e_a  = {}
-        b64e_a2 = {}
-        b64e_b1 = {}
-        b64e_b2 = {}
-        b64e_c1 = {}
-        b64e_c  = {}
-
-        for f = 0,255 do
-            b64e_a  [f]=b64e[ext(f,2,6)]
-            b64e_a2 [f]=ext(f,0,2)*16
-            b64e_b1 [f]=ext(f,4,4)
-            b64e_b2 [f]=ext(f,0,4)*4
-            b64e_c1 [f]=ext(f,6,2)
-            b64e_c  [f]=b64e[ext(f,0,6)]
-        end
-
-        -- preload decode lookup tables
-        b64d_a1 = {}
-        b64d_a2 = {}
-        b64d_b1 = {}
-        b64d_b2 = {}
-        b64d_c1 = {}
-        b64d_z  = b64e[0]
-
-        for k,v in pairs(b64d) do
-            -- Each comment shows the rough C expression that would be used to
-            -- generate the returned triple.
-            --
-            b64d_a1 [k] = v*4                   -- ([b1]       ) << 2
-            b64d_a2 [k] = math.floor( v / 16 )  -- ([b2] & 0x30) >> 4
-            b64d_b1 [k] = ext( v, 0, 4 ) * 16   -- ([b2] & 0x0F) << 4
-            b64d_b2 [k] = math.floor( v / 4 )   -- ([b3] & 0x3c) >> 2
-            b64d_c1 [k] = ext( v, 0, 2 ) * 64   -- ([b3] & 0x03) << 6
-        end
-
-        if c_alpha._term ~= "" then
-            tail_padd64[1]=string.char(c_alpha._term:byte(),c_alpha._term:byte())
-            tail_padd64[2]=string.char(c_alpha._term:byte())
-        else
-            tail_padd64[1]=""
-            tail_padd64[2]=""
-        end
-
-        local esc_term
-
-        if magic[c_alpha._term] ~= nil then
-            esc_term=c_alpha._term:gsub(magic[c_alpha._term],function (s) return magic[s] end)
-        elseif c_alpha._term == "%" then
-            esc_term = "%%"
-        else
-            esc_term=c_alpha._term
-        end
-
-        if not c_alpha._strip then
-            local p=s:gsub("%%",function (s) return "__unique__" end)
-            for k,v in pairs(magic)
-            do
-                p=p:gsub(v,function (s) return magic[s] end )
-            end
-            local mr=p:gsub("__unique__",function() return "%%" end)
-
-            c_alpha._strip = string.format("[^%s%s]",mr,esc_term)
-        end
-
-        assert( c_alpha._strip )
-
-        pattern_strip = c_alpha._strip
-
-        local c =0 for i in pairs(b64d) do c=c+1 end
-
-        assert( c_alpha._alpha == s,        "Integrity error." )
-        assert( c == 64,                    "The alphabet must be 64 unique values." )
-        if esc_term ~= "" then
-            assert( not c_alpha._alpha:find(esc_term), "Tail characters must not exist in alphabet." )
-        end
-
-        if known_base64_alphabets[alpha] == nil then
-            known_base64_alphabets[alpha]=c_alpha
-        end
-    end
-
-    return c_alpha._alpha,c_alpha._term
-end
-
-
---------------------------------------------------------------------------------
--- encode64
---
---  Entry point mode selector.
---
---
-local function encode64(i,o)
-    local method
-
-    if o ~= nil and io.type(o) == "file" then
-        local file_out = o
-        o = function(s) file_out:write(s) end
-    end
-
-    if type(i) == "string" then
-        if type(o) == "function" then
-            method = encode64_with_predicate
-        else
-            assert( o == nil, "unsupported request")
-            method = encode64_tostring
-        end
-    elseif io.type(i) == "file" then
-        assert( type(o) == "function", "file source requires output predicate")
-        i      = encode64_io_iterator(i)
-        method = encode64_with_ii
-    else
-        assert( false, "unsupported mode" )
-    end
-
-    return method(i,o)
-end
-
-
---------------------------------------------------------------------------------
--- decode64
---
---  Entry point mode selector.
---
---
-local function decode64(i,o)
-    local method
-
-    if o ~= nil and io.type(o) == "file" then
-        local file_out = o
-        o = function(s) file_out:write(s) end
-    end
-
-    if type(i) == "string" then
-        if type(o) == "function" then
-            method = decode64_with_predicate
-        else
-            assert( o == nil, "unsupported request")
-            method = decode64_tostring
-        end
-    elseif io.type(i) == "file" then
-        assert( type(o) == "function", "file source requires output predicate")
-        i      = decode64_io_iterator(i)
-        method = decode64_with_ii
-    else
-        assert( false, "unsupported mode" )
-    end
-
-    return method(i,o)
-end
-
-set_and_get_alphabet("base64")
-
---[[**************************************************************************]]
---[[******************************  Module  **********************************]]
---[[**************************************************************************]]
-return
-{
-    encode      = encode64,
-    decode      = decode64,
-    alpha       = set_and_get_alphabet,
-}
+return base64
+
+--[[
+------------------------------------------------------------------------------
+This software is available under 2 licenses -- choose whichever you prefer.
+------------------------------------------------------------------------------
+ALTERNATIVE A - MIT License
+Copyright (c) 2018 Ilya Kolbin
+Permission is hereby granted, free of charge, to any person obtaining a copy of
+this software and associated documentation files (the "Software"), to deal in
+the Software without restriction, including without limitation the rights to
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+of the Software, and to permit persons to whom the Software is furnished to do
+so, subject to the following conditions:
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+------------------------------------------------------------------------------
+ALTERNATIVE B - Public Domain (www.unlicense.org)
+This is free and unencumbered software released into the public domain.
+Anyone is free to copy, modify, publish, use, compile, sell, or distribute this
+software, either in source code form or as a compiled binary, for any purpose,
+commercial or non-commercial, and by any means.
+In jurisdictions that recognize copyright laws, the author or authors of this
+software dedicate any and all copyright interest in the software to the public
+domain. We make this dedication for the benefit of the public at large and to
+the detriment of our heirs and successors. We intend this dedication to be an
+overt act of relinquishment in perpetuity of all present and future rights to
+this software under copyright law.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+------------------------------------------------------------------------------
+--]]
