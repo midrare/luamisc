@@ -336,4 +336,16 @@ function M.reduce(items, f, initial)
   return accumulator
 end
 
+---@param items any[] array to sum
+---@param f (fun(any): any)? value getter
+---@return any sum sum total of all elements
+function M.sum(items, f)
+  f = f or function(e) return e end
+  local sum = 0
+  for _, e in ipairs(items) do
+    sum = sum + f(e)
+  end
+  return sum
+end
+
 return M
