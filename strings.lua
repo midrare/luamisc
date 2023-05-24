@@ -106,8 +106,31 @@ end
 ---@param i integer substring start
 ---@param j integer? substring end
 function M.sub(s, i, j)
-  local start = utf8.offset(s, i) or 1
-  local stop = j and (utf8.offset(s, j + 1) - 1) or nil
+  assert(s ~= nil, "expected string")
+  assert(i ~= nil, "expected start index")
+
+  local start_ok, start = pcall(utf8.offset, s, i)
+  if not start_ok or not start then
+    -- out of bounds
+    start = #s + 1
+    if i < 0 then
+      start = start * -1
+    end
+  end
+
+  local stop_ok, stop = nil, nil
+  if j ~= nil then
+    stop_ok, stop = pcall(utf8.offset, s, j)
+    if not stop_ok or not stop then
+      -- out of bounds
+      ---@diagnostic disable-next-line: cast-local-type
+      stop = #s + 1
+      if j < 0 then
+        stop = stop * -1
+      end
+    end
+  end
+
   return s:sub(start, stop)
 end
 
