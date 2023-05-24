@@ -166,7 +166,8 @@ end
 function M.flattened(...)
   local o = {}
   for i = 1, select("#", ...) do
-    table.insert(o, select(i, ...))
+    local val = select(i, ...)
+    table.insert(o, val)
   end
 
   local flat = {}
