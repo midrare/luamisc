@@ -37,8 +37,85 @@ local luaunit = require("luaunit")
 local arrays = require("arrays")
 
 ---@diagnostic disable-next-line: unused-function, unused-local
-TEST_ARRAYS = {
-  test_get_from_forwards = function()
+TEST_IS_ARRAY = {
+  test_default = function()
+    local items = { "a", "b", "c", "d" }
+    luaunit.assert_is_true(arrays.is_array(items))
+  end,
+  test_explicit = function()
+    local items = {[1] = "a", [2] = "b", [3] = "c", [4] = "d"}
+    luaunit.assert_is_true(arrays.is_array(items))
+  end,
+  test_left_gap = function()
+    local items = {[2] = "b", [3] = "c", [4] = "d", [5] = "e"}
+    luaunit.assert_is_false(arrays.is_array(items))
+  end,
+  test_mid_gap = function()
+    local items = {[1] = "a", [2] = "b", [4] = "d", [5] = "e"}
+    luaunit.assert_is_false(arrays.is_array(items))
+  end,
+  test_right_gap = function()
+    local items = {[1] = "a", [2] = "b", [3] = "c", [4] = "d"}
+    luaunit.assert_is_true(arrays.is_array(items))
+  end,
+  test_empty = function()
+    local items = {}
+    luaunit.assert_is_false(arrays.is_array(items))
+  end,
+  test_bad_left = function()
+    local items = {foo = "bar", [2] = "b", [3] = "c", [4] = "d"}
+    luaunit.assert_is_false(arrays.is_array(items))
+  end,
+  test_bad_mid = function()
+    local items = {[1] = "a", [2] = "b", foo = "bar", [4] = "d"}
+    luaunit.assert_is_false(arrays.is_array(items))
+  end,
+  test_bad_right = function()
+    local items = {[1] = "a", [2] = "b", [3] = "c", foo = "bar"}
+    luaunit.assert_is_false(arrays.is_array(items))
+  end,
+  test_default_nonlinear = function()
+    local items = { "a", "b", "c", "d", "e" }
+    luaunit.assert_is_true(arrays.is_array(items, false))
+  end,
+  test_explicit_nonlinear = function()
+    local items = {[1] = "a", [2] = "b", [3] = "c", [4] = "d"}
+    luaunit.assert_is_true(arrays.is_array(items, false))
+  end,
+  test_left_gap_nonlinear = function()
+    local items = {[2] = "b", [3] = "c", [4] = "d", [5] = "e"}
+    luaunit.assert_is_true(arrays.is_array(items, false))
+  end,
+  test_mid_gap_nonlinear = function()
+    local items = {[1] = "a", [2] = "b", [4] = "d", [5] = "e"}
+    luaunit.assert_is_true(arrays.is_array(items, false))
+  end,
+  test_right_gap_nonlinear = function()
+    local items = {[1] = "a", [2] = "b", [3] = "c", [4] = "d"}
+    luaunit.assert_is_true(arrays.is_array(items, false))
+  end,
+  test_empty_nonlinear = function()
+    local items = {}
+    luaunit.assert_is_false(arrays.is_array(items, false))
+  end,
+  test_bad_left_nonlinear = function()
+    local items = {foo = "bar", [2] = "b", [3] = "c", [4] = "d"}
+    luaunit.assert_is_false(arrays.is_array(items, false))
+  end,
+  test_bad_mid_nonlinear = function()
+    local items = {[1] = "a", [2] = "b", foo = "bar", [4] = "d"}
+    luaunit.assert_is_false(arrays.is_array(items, false))
+  end,
+  test_bad_right_nonlinear = function()
+    local items = {[1] = "a", [2] = "b", [3] = "c", foo = "bar"}
+    luaunit.assert_is_false(arrays.is_array(items, false))
+  end,
+}
+
+
+---@diagnostic disable-next-line: unused-function, unused-local
+TEST_GET_FROM = {
+  test_forwards = function()
     local items = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }
     luaunit.assert_equals(arrays.get_from(items, 0, 0), {})
     luaunit.assert_equals(arrays.get_from(items, 0, 1), { 1 })
@@ -55,7 +132,7 @@ TEST_ARRAYS = {
     luaunit.assert_equals(arrays.get_from(items, 99, 999), {})
     luaunit.assert_equals(arrays.get_from(items, 999, 99), {})
   end,
-  test_get_from_backwards = function()
+  test_backwards = function()
     local items = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }
     luaunit.assert_equals(arrays.get_from(items, 99, 999), {})
     luaunit.assert_equals(arrays.get_from(items, 999, 99), {})

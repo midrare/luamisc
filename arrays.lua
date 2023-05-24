@@ -118,15 +118,37 @@ local function _cloned(o, deep)
   return o2
 end
 
-function M.is_array(o)
+--- check if object is array-like
+--- object is array-like if it is a non-empty table and all keys are integers
+---@param o? any object to check
+---@param linear? boolean false to allow gaps between keys
+---@return boolean is_array true if object is non-empty and is array-like
+function M.is_array(o, linear)
   if type(o) ~= "table" then
     return false
   end
-  local max_idx = 0
-  for i, _ in pairs(o) do
-    max_idx = i
+
+  linear = linear ~= false
+  if linear then
+    local i = 1
+    for _, _ in pairs(o) do
+      if o[i] == nil then
+        return false
+      end
+      i = i + 1
+    end
+    return i > 1  -- check for not empty
   end
-  return max_idx == #o
+
+  local is_empty = true
+  for i, _ in pairs(o) do
+    if type(i) ~= "number" or math.floor(i) ~= i then
+      return false
+    end
+    is_empty = false
+  end
+
+  return not is_empty
 end
 
 ---@param items any[] array to read from
