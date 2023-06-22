@@ -218,7 +218,7 @@ function M.read_winreg(key)
     :gsub("[\\/]+$", "")
     :gsub("[^a-zA-Z0-9_\\-\\/\\. ]", "")
 
-  local out = M.run({'reg.exe', 'query', key})
+  local _, out, _ = M.run({'reg.exe', 'query', key})
   local lines = _to_lines(out)
 
   -- skip prelude
@@ -292,7 +292,7 @@ local function _get_win_machine_id()
 end
 
 local function _get_macos_machine_id()
-  local output = M.run({"ioreg", "-rd1", "-c", "IOPlatformExpertDevice"})
+  local _, output, _ = M.run({"ioreg", "-rd1", "-c", "IOPlatformExpertDevice"})
   if not output then
     return nil
   end
@@ -323,7 +323,7 @@ local function _get_bsd_machine_id()
   mach_id = mach_id and _str_strip(mach_id) or nil
 
   if not mach_id then
-    local output = M.run({"kenv", "-q", "smbios.system.uuid"})
+    local _, output, _ = M.run({"kenv", "-q", "smbios.system.uuid"})
     mach_id = output and _str_strip(output) or nil
   end
 
