@@ -1,9 +1,7 @@
 local M = {}
 
-local vimfn = (vim or {}).fn or {}
-
 local is_windows = (function()
-  local is_ok, has_win = pcall(vimfn.has, "win32")
+  local is_ok, has_win = pcall(vim.fn.has, "win32")
   if is_ok then
     return has_win > 0
   end
@@ -12,7 +10,7 @@ end)()
 local path_sep = is_windows and "\\" or "/"
 
 local function get_cwd()
-  local cwd = vimfn.getcwd and vimfn.getcwd(-1, -1) or nil
+  local cwd = vim.fn.getcwd and vim.fn.getcwd(-1, -1) or nil
   if cwd then
     cwd = cwd:gsub("[\\/]+$", ""):gsub("[\\/]", "/")
     return cwd

@@ -29,10 +29,8 @@ package.path = get_script_dir() .. "/?.lua"
 local json = require("json")
 package.path = old_package_path
 
-local vimfn = (vim or {}).fn or {}
-
 local is_windows = (function()
-  local is_ok, has_win = pcall(vimfn.has, "win32")
+  local is_ok, has_win = pcall(vim.fn.has, "win32")
   if is_ok then
     return has_win > 0
   end
@@ -152,7 +150,7 @@ end
 
 ---@diagnostic disable-next-line: redefined-local
 function M.makedirs(dirname)
-  local is_ok, _ = pcall(vimfn.mkdir, dirname, "p")
+  local is_ok, _ = pcall(vim.fn.mkdir, dirname, "p")
   if is_ok then
     return true
   end
@@ -214,7 +212,7 @@ end
 ---@return any? data parsed file contents
 ---@nodiscard
 function M.read_json(filename)
-  if vimfn.filereadable(filename) <= 0 then
+  if vim.fn.filereadable(filename) <= 0 then
     return nil
   end
 
@@ -225,7 +223,7 @@ function M.read_json(filename)
 
   local status_ok, json_obj = pcall(json.decode, data)
   if not status_ok or not json_obj then
-    status_ok, json_obj = pcall(vimfn.json_decode, data)
+    status_ok, json_obj = pcall(vim.fn.json_decode, data)
   end
   if not status_ok or not json_obj then
     return nil
@@ -240,7 +238,7 @@ function M.write_json(filename, data)
   assert(type(filename) == "string", "filepath must be of type string")
   local status_ok, json_str = pcall(json.encode, data)
   if not status_ok or not json_str then
-    status_ok, json_str = pcall(vimfn.json_encode, data)
+    status_ok, json_str = pcall(vim.fn.json_encode, data)
   end
   if not status_ok or not json_str then
     return
