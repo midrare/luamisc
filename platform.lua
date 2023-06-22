@@ -1,7 +1,5 @@
 local M = {}
 
-local vimfn = (vim or {}).fn or {}
-
 local Process = {}
 
 function Process:new(o)
@@ -119,14 +117,6 @@ function Process:_on_exit(exitcode, signal)
   self._handle = nil
 end
 
-local is_windows = (function()
-  local is_ok, has_win = pcall(vimfn.has, "win32")
-  if is_ok then
-    return has_win > 0
-  end
-  return package.config:sub(1, 1) == "\\"
-end)()
-
 local function _exec(cmd)
   local status_ok, pipe = pcall(io.popen, cmd)
   if not status_ok or not pipe then
@@ -209,17 +199,14 @@ end
 ---@return boolean is_win true if current os is windows
 ---@nodiscard
 function M.is_windows()
-  return is_windows
+  return vim.fn.has("win32") >= 1
 end
 
 ---@return string? ver_str neovim version string
 ---@nodiscard
 function M.nvim_version()
-  if vimfn.execute then
-    local ver_str = vimfn.execute("version")
-    return ver_str:match("^.+ +v([%d.]+)[-_%s]*([%w._-]*)\r?\n")
-  end
-  return nil
+  local ver_str = vim.fn.execute("version")
+  return ver_str:match("^.+ +v([%d.]+)[-_%s]*([%w._-]*)\r?\n")
 end
 
 ---@package
@@ -231,7 +218,7 @@ end
 function M.read_winreg(key)
   assert(type(key) == "string", "key must be a string")
 
-  if not is_windows then
+  if vim.fn.has("win32") <= 0 then
     return {}, {}, nil
   end
 
@@ -289,7 +276,7 @@ end
 ---@param name? string value name
 ---@return regval? value value read from registry
 function M.read_winreg_value(key, name)
-  if not is_windows then
+  if vim.fn.has("win32") <= 0 then
     return nil
   end
 
@@ -359,7 +346,7 @@ end
 ---@return string? mach_id unique machine-specific id
 function M.machine_id()
   local mach_id = nil
-  if is_windows then
+  if vim.fn.has("win32") >= 1 then
     mach_id = mach_id or _get_win_machine_id()
   else
     mach_id = mach_id
@@ -404,7 +391,7 @@ end
 ---@param syspath? string|string[] $PATH to search. default is use env var
 ---@return string? filename path to executable if found
 function M.in_path(exe, syspath)
-  local sep = is_windows and "\\" or "/"
+  local sep = vim.fn.has("win32") >= 1 and "\\" or "/"
   if type(syspath) ~= "table" then
     syspath = M.path(syspath)
   end
@@ -413,7 +400,7 @@ function M.in_path(exe, syspath)
     local filename = dir .. sep .. exe
     if _is_file(filename) then
       return filename
-    elseif is_windows and _is_file(filename .. ".exe") then
+    elseif vim.fn.has("win32") >= 1 and _is_file(filename .. ".exe") then
       return filename .. ".exe"
     end
   end
