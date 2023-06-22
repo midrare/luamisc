@@ -117,19 +117,6 @@ function Process:_on_exit(exitcode, signal)
   self._handle = nil
 end
 
-local function _exec(cmd)
-  local status_ok, pipe = pcall(io.popen, cmd)
-  if not status_ok or not pipe then
-    return nil
-  end
-
-  pipe:flush()
-  local result = pipe:read("*a")
-  pipe:close()
-
-  return result
-end
-
 local function _to_lines(s)
   local lines = {}
 
@@ -231,7 +218,7 @@ function M.read_winreg(key)
     :gsub("[\\/]+$", "")
     :gsub("[^a-zA-Z0-9_\\-\\/\\. ]", "")
 
-  local out = _exec('reg.exe query "' .. key .. '"')
+  local out = M.run({'reg.exe', 'query', key})
   local lines = _to_lines(out)
 
   -- skip prelude
@@ -305,7 +292,7 @@ local function _get_win_machine_id()
 end
 
 local function _get_macos_machine_id()
-  local output = _exec("ioreg -rd1 -c IOPlatformExpertDevice")
+  local output = M.run({"ioreg", "-rd1", "-c", "IOPlatformExpertDevice"})
   if not output then
     return nil
   end
@@ -336,7 +323,7 @@ local function _get_bsd_machine_id()
   mach_id = mach_id and _str_strip(mach_id) or nil
 
   if not mach_id then
-    local output = _exec("kenv -q smbios.system.uuid")
+    local output = M.run({"kenv", "-q", "smbios.system.uuid"})
     mach_id = output and _str_strip(output) or nil
   end
 
