@@ -39,11 +39,6 @@ local function _str_escape(s)
   return s:gsub('"', '"')
 end
 
-local function _is_file(filename)
-  local f = io.open(filename, "r")
-  return f ~= nil and io.close(f)
-end
-
 local function _is_filename_sane(filename)
   local s = filename:gsub("^%s*[a-zA-Z]:[\\/]?", "")
   return not (s:match("[^a-zA-Z0-9/\\%.%-_'()%[%] ]") and true)
@@ -83,9 +78,9 @@ local function _in_path(exe, syspath)
 
   for _, dir in ipairs(syspath) do
     local filename = dir .. path_sep .. exe
-    if _is_file(filename) then
+    if vim.fn.filereadable(filename) >= 1 then
       return filename
-    elseif is_windows and _is_file(filename .. ".exe") then
+    elseif is_windows and vim.fn.filereadable(filename .. ".exe") >= 1 then
       return filename .. ".exe"
     end
   end
