@@ -1,33 +1,10 @@
+local modulename, _ = ...
+local moduleroot = modulename:gsub("%.[^%.]*$", "")
+
+local json = require(moduleroot .. ".json")
+local runcmd = require(moduleroot .. "._runcmd")
+
 local M = {}
-
----@param source? string caller debug.getinfo(1).source
----@return string dir path to dir of calling script
----@nodiscard
-local function get_script_dir(source)
-  source = source or debug.getinfo(1).source
-  local script = source:gsub("^@", ""):gsub("[\\/]", "/")
-  if script:match("^[a-zA-Z]:[\\/]") then
-    return "" .. script:gsub("[\\/]+[^\\/]*$", "")
-  end
-  local pwd_cmd = package.config:sub(1, 1) == "/" and "pwd" or "echo %cd%"
-  local pipe = io.popen(pwd_cmd)
-  local cwd = pipe and pipe:read("*l"):gsub("[\\/]+$", ""):gsub("[\\/]", "/")
-  if pipe then
-    pipe:close()
-  end
-
-  local dir = cwd or "."
-  if script:match("[\\/][^\\/]+$") then
-    dir = dir .. "/" .. script:gsub("[\\/]+[^\\/]*$", "")
-  end
-
-  return dir
-end
-
-local old_package_path = package.path
-package.path = get_script_dir() .. "/?.lua"
-local json = require("json")
-package.path = old_package_path
 
 local is_windows = vim.fn.has("win32") >= 1
 local path_sep = vim.fn.has("win32") >= 1 and "\\" or "/"
@@ -70,24 +47,6 @@ end
 local function _is_filename_sane(filename)
   local s = filename:gsub("^%s*[a-zA-Z]:[\\/]?", "")
   return not (s:match("[^a-zA-Z0-9/\\%.%-_'()%[%] ]") and true)
-end
-
-local function _exec(cmd, strip)
-  strip = strip ~= false
-  local status_ok, pipe = pcall(io.popen, cmd)
-  if not status_ok or not pipe then
-    return nil
-  end
-
-  pipe:flush()
-  local result = pipe:read("*a")
-  pipe:close()
-
-  if strip and result then
-    strip = _str_strip(result)
-  end
-
-  return result
 end
 
 local function _path(syspath)
@@ -229,7 +188,7 @@ function M.created(filename)
 
   -- allow windows in case gnu port is installed
   if (not epoch_secs or epoch_secs <= 0) and _in_path("stat") then
-    local output = _exec('stat --format %W "' .. _str_escape(filename) .. '"')
+    local _, output, _ = runcmd.run({ "stat", "--format", "%W", filename })
     epoch_secs = tonumber(output)
   end
 
@@ -238,12 +197,15 @@ function M.created(filename)
     and is_windows
     and _in_path("powershell")
   then
-    local output = _exec(
-      "powershell -NoProfile -NoLogo -Command "
-        .. '"(Get-Item \\"'
-        .. filename:gsub('"', '\\"')
-        .. '\\").CreationTime | Get-Date -UFormat %s"'
-    )
+    local _, output, _ = runcmd.run({
+      "powershell",
+      "-NoProfile",
+      "-NoLogo",
+      "-Command",
+      '(Get-Item "'
+        .. _str_escape(filename)
+        .. '").CreationTime | Get-Date -UFormat %s',
+    })
     epoch_secs = tonumber(output)
   end
 
@@ -252,7 +214,7 @@ function M.created(filename)
     and not is_windows
     and _in_path("find")
   then
-    local output = _exec('find "' .. _str_escape(filename) .. '" -printf "%Bs"')
+    local _, output, _ = runcmd.run({ "find", filename, "-printf", "%Bs" })
     epoch_secs = tonumber(output)
   end
 
@@ -270,7 +232,7 @@ function M.modified(filename)
 
   -- allow windows in case gnu port is installed
   if (not epoch_secs or epoch_secs <= 0) and _in_path("stat") then
-    local output = _exec('stat --format %Y "' .. _str_escape(filename) .. '"')
+    local _, output, _ = runcmd.run({ "stat", "--format", "%Y", filename })
     epoch_secs = tonumber(output)
   end
 
@@ -279,12 +241,15 @@ function M.modified(filename)
     and is_windows
     and _in_path("powershell")
   then
-    local output = _exec(
-      "powershell -NoProfile -NoLogo -Command "
-        .. '"(Get-Item \\"'
-        .. filename:gsub('"', '\\"')
-        .. '\\").LastWriteTime | Get-Date -UFormat %s"'
-    )
+    local _, output, _ = runcmd.run({
+      "powershell",
+      "-NoProfile",
+      "-NoLogo",
+      "-Command",
+      '(Get-Item "'
+        .. _str_escape(filename)
+        .. '").LastWriteTime | Get-Date -UFormat %s',
+    })
     epoch_secs = tonumber(output)
   end
 
@@ -293,7 +258,7 @@ function M.modified(filename)
     and not is_windows
     and _in_path("date")
   then
-    local output = _exec('date --utc +%s -r "' .. _str_escape(filename) .. '"')
+    local _, output, _ = runcmd.run({ "date", "--utc", "+%s", "-r", filename })
     epoch_secs = tonumber(output)
   end
 
@@ -302,7 +267,7 @@ function M.modified(filename)
     and not is_windows
     and _in_path("find")
   then
-    local output = _exec('find "' .. _str_escape(filename) .. '" -printf "%Ts"')
+    local _, output, _ = runcmd.run({ "find", filename, "-printf", "%Ts" })
     epoch_secs = tonumber(output)
   end
 
@@ -324,12 +289,12 @@ function M.inode(filename)
 
   if (not inode or inode <= 0) and _in_path("stat") then
     -- allow windows in case gow or equivalent is installed
-    local output = _exec('stat --format %i "' .. _str_escape(filename) .. '"')
+    local _, output, _ = runcmd.run({ "stat", "--format", "%i", filename })
     inode = tonumber(output)
   end
 
   if (not inode or inode <= 0) and not is_windows and _in_path("find") then
-    local output = _exec('find "' .. _str_escape(filename) .. '" -printf "%i"')
+    local _, output, _ = runcmd.run({ "find", filename, "-printf", "%i" })
     inode = tonumber(output)
   end
 
@@ -350,8 +315,8 @@ function M.file_id(filename)
   local file_id = nil
 
   if (not file_id or file_id < 0) and is_windows and _in_path("fsutil") then
-    local output =
-      _exec('fsutil file queryFileID "' .. _str_escape(filename) .. '"')
+    local _, output, _ =
+      runcmd.run({ "fsutil", "file", "queryFileID", filename })
     output = output and output:match("%s+(0x[a-fA-F0-9]+)%s*$") or nil
     file_id = tonumber(output)
   end
