@@ -47,6 +47,9 @@ TEST_PLATFORM = {
   test_is_windows = function()
     luaunit.assert_equals(platform.is_windows(), vim.fn.has("win32") >= 1)
   end,
+  test_cpu_procs = function()
+    luaunit.assert_is_number(platform.cpu_procs())
+  end,
 }
 
 luaunit.LuaUnit.run()
