@@ -1,30 +1,14 @@
 local M = {}
 
-local is_windows = (function()
-  local is_ok, has_win = pcall(vim.fn.has, "win32")
-  if is_ok then
-    return has_win > 0
-  end
-  return package.config:sub(1, 1) == "\\"
-end)()
-local path_sep = is_windows and "\\" or "/"
+local is_windows = vim.fn.has("win32") >= 1
+local path_sep = vim.fn.has("win32") >= 1 and "\\" or "/"
 
 local function get_cwd()
-  local cwd = vim.fn.getcwd and vim.fn.getcwd(-1, -1) or nil
-  if cwd then
-    cwd = cwd:gsub("[\\/]+$", ""):gsub("[\\/]", "/")
-    return cwd
+  local cwd = vim.fn.getcwd(-1, -1)
+  if not cwd then
+    return nil
   end
-
-  local pwd_cmd = is_windows and "echo %cd%" or "pwd"
-  local pipe = io.popen(pwd_cmd)
-  cwd = pipe and pipe:read("*l")
-  if pipe then
-    pipe:close()
-  end
-
-  cwd = cwd:gsub("[\\/]+$", ""):gsub("[\\/]", "/")
-  return cwd
+  return cwd:gsub("[\\/]+$", ""):gsub("[\\/]", "/")
 end
 
 local function split_path(s)
