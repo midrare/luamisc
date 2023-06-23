@@ -50,6 +50,9 @@ TEST_PLATFORM = {
   test_cpu_procs = function()
     luaunit.assert_is_number(platform.cpu_procs())
   end,
+  test_nvim_version = function()
+    luaunit.assert_is_string(platform.nvim_version())
+  end,
 }
 
 luaunit.LuaUnit.run()
