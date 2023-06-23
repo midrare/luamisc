@@ -29,13 +29,8 @@ package.path = get_script_dir() .. "/?.lua"
 local json = require("json")
 package.path = old_package_path
 
-local is_windows = (function()
-  local is_ok, has_win = pcall(vim.fn.has, "win32")
-  if is_ok then
-    return has_win > 0
-  end
-  return package.config:sub(1, 1) == "\\"
-end)()
+local is_windows = vim.fn.has("win32") >= 1
+local path_sep = vim.fn.has("win32") >= 1 and "\\" or "/"
 
 local function fix_numeric_keys(o)
   if type(o) ~= "table" then
@@ -123,13 +118,12 @@ local function _path(syspath)
 end
 
 local function _in_path(exe, syspath)
-  local sep = is_windows and "\\" or "/"
   if type(syspath) ~= "table" then
     syspath = _path(syspath)
   end
 
   for _, dir in ipairs(syspath) do
-    local filename = dir .. sep .. exe
+    local filename = dir .. path_sep .. exe
     if _is_file(filename) then
       return filename
     elseif is_windows and _is_file(filename .. ".exe") then
