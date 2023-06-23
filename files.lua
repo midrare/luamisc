@@ -37,14 +37,6 @@ local is_windows = (function()
   return package.config:sub(1, 1) == "\\"
 end)()
 
-local function dirname(filename)
-  local d = filename:match("^(.*[\\/]).+$")
-  if d ~= nil then
-    d = d:match("^(.+)[\\/]+$") or d
-  end
-  return d
-end
-
 local function fix_numeric_keys(o)
   if type(o) ~= "table" then
     return o
@@ -151,21 +143,7 @@ end
 ---@diagnostic disable-next-line: redefined-local
 function M.makedirs(dirname)
   local is_ok, _ = pcall(vim.fn.mkdir, dirname, "p")
-  if is_ok then
-    return true
-  end
-
-  if dirname:match("^[a-zA-Z0-9_-\\/ %.']+$") then
-    dirname = dirname:gsub("[\\/]", "/") -- prevent char escapes
-    if is_windows then
-      os.execute('cmd.exe /E:ON /F:OFF /V:OFF /Q "' .. dirname .. '"')
-    else
-      os.execute('mkdir -p "' .. dirname .. '"')
-    end
-    return true
-  end
-
-  return false
+  return is_ok
 end
 
 ---@param filename string path to file
@@ -191,7 +169,7 @@ function M.write_file(filename, data)
     data = ""
   end
 
-  local parent_dir = dirname(filename)
+  local parent_dir = vim.fs.dirname(filename)
   if parent_dir then
     M.makedirs(parent_dir)
   end
