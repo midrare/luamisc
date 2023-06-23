@@ -1,5 +1,8 @@
 local M = {}
 
+local is_windows = vim.fn.has("win32") >= 1
+local path_sep = vim.fn.has("win32") >= 1 and "\\" or "/"
+
 local Process = {}
 
 function Process:new(o)
@@ -186,7 +189,7 @@ end
 ---@return boolean is_win true if current os is windows
 ---@nodiscard
 function M.is_windows()
-  return vim.fn.has("win32") >= 1
+  return is_windows
 end
 
 ---@return string? ver_str neovim version string
@@ -205,7 +208,7 @@ end
 function M.read_winreg(key)
   assert(type(key) == "string", "key must be a string")
 
-  if vim.fn.has("win32") <= 0 then
+  if not is_windows then
     return {}, {}, nil
   end
 
@@ -263,7 +266,7 @@ end
 ---@param name? string value name
 ---@return regval? value value read from registry
 function M.read_winreg_value(key, name)
-  if vim.fn.has("win32") <= 0 then
+  if not is_windows then
     return nil
   end
 
@@ -333,7 +336,7 @@ end
 ---@return string? mach_id unique machine-specific id
 function M.machine_id()
   local mach_id = nil
-  if vim.fn.has("win32") >= 1 then
+  if is_windows then
     mach_id = mach_id or _get_win_machine_id()
   else
     mach_id = mach_id
@@ -378,16 +381,15 @@ end
 ---@param syspath? string|string[] $PATH to search. default is use env var
 ---@return string? filename path to executable if found
 function M.in_path(exe, syspath)
-  local sep = vim.fn.has("win32") >= 1 and "\\" or "/"
   if type(syspath) ~= "table" then
     syspath = M.path(syspath)
   end
 
   for _, dir in ipairs(syspath) do
-    local filename = dir .. sep .. exe
+    local filename = dir .. path_sep .. exe
     if _is_file(filename) then
       return filename
-    elseif vim.fn.has("win32") >= 1 and _is_file(filename .. ".exe") then
+    elseif is_windows and _is_file(filename .. ".exe") then
       return filename .. ".exe"
     end
   end
