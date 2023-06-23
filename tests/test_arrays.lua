@@ -26,15 +26,14 @@ local function get_script_dir(source)
   return dir
 end
 
-package.path = package.path
-  .. ";"
-  .. get_script_dir()
-  .. "/?.lua"
-  .. ";"
-  .. get_script_dir()
-  .. "/../?.lua"
+local old_package_path = package.path
+local script_dir = get_script_dir()
+package.path = script_dir .. "/?.lua;" .. script_dir .. "/../?.lua;"
 local luaunit = require("luaunit")
+package.loaded["arrays"] = nil
 local arrays = require("arrays")
+package.path = old_package_path
+
 
 ---@diagnostic disable-next-line: unused-function, unused-local
 TEST_IS_ARRAY = {
@@ -151,4 +150,4 @@ TEST_GET_FROM = {
   end,
 }
 
-os.exit(luaunit.LuaUnit.run())
+luaunit.LuaUnit.run()
