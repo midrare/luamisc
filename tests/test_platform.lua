@@ -1,7 +1,3 @@
-local modulename, _ = ...
----@diagnostic disable-next-line: unused-local
-local moduleroot = modulename and modulename:gsub("(.+)%..+", "%1") or nil
-
 ---@param source? string caller debug.getinfo(1).source
 ---@return string dir path to dir of calling script
 ---@nodiscard
@@ -26,18 +22,28 @@ local function get_script_dir(source)
   return dir
 end
 
-package.path = package.path
-  .. ";"
-  .. get_script_dir()
-  .. "/?.lua"
-  .. ";"
-  .. get_script_dir()
-  .. "/../?.lua"
+-- force reload
+package.loaded["platform"] = nil
+
+local old_package_path = package.path
+local script_dir = get_script_dir()
+package.path = script_dir .. "/?.lua;" .. script_dir .. "/../?.lua;"
 local luaunit = require("luaunit")
 local platform = require("platform")
-local tables = require("tables")
+package.path = old_package_path
 
 TEST_PLATFORM = {
+  test_read_winreg_value = function()
+    if vim.fn.has("win32") >= 1 then
+      local value = platform.read_winreg_value(
+        "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion",
+        "ProgramFilesDir"
+      )
+      luaunit.assert_equals(value.type, "REG_SZ")
+      luaunit.assert_eval_to_true(value.value)
+      luaunit.assert_not_equals(value.value, "")
+    end
+  end,
 }
 
-os.exit(luaunit.LuaUnit.run())
+luaunit.LuaUnit.run()
