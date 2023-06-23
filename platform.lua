@@ -1,6 +1,5 @@
 local modulename, _ = ...
-local moduleroot = modulename:gsub("%.[^%.]*$", "")
-
+local moduleroot = modulename:gsub("[^%.]*$", ""):gsub("%.$", "")
 local runcmd = require(moduleroot .. "._runcmd")
 
 local M = {}
