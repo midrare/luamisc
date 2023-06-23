@@ -44,6 +44,9 @@ TEST_PLATFORM = {
       luaunit.assert_not_equals(value.value, "")
     end
   end,
+  test_is_windows = function()
+    luaunit.assert_equals(platform.is_windows(), vim.fn.has("win32") >= 1)
+  end,
 }
 
 luaunit.LuaUnit.run()
