@@ -4,11 +4,7 @@ local is_windows = vim.fn.has("win32") >= 1
 local path_sep = vim.fn.has("win32") >= 1 and "\\" or "/"
 
 local function get_cwd()
-  local cwd = vim.fn.getcwd(-1, -1)
-  if not cwd then
-    return nil
-  end
-  return cwd:gsub("[\\/]+$", ""):gsub("[\\/]", "/")
+  return vim.fn.getcwd(-1, -1):gsub("[\\/]+$", ""):gsub("[\\/]", "/")
 end
 
 local function split_path(s)
