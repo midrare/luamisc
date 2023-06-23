@@ -53,6 +53,12 @@ TEST_PLATFORM = {
   test_nvim_version = function()
     luaunit.assert_is_string(platform.nvim_version())
   end,
+  test_run = function()
+    local status, out, err = platform.run({vim.v.progpath, "--version"})
+    luaunit.assert_equals(status, 0)
+    luaunit.assert_str_contains(out, "NVIM")
+    luaunit.assert_eval_to_false(err)
+  end,
 }
 
 luaunit.LuaUnit.run()
