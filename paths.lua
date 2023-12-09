@@ -85,6 +85,8 @@ function M.normpath(filename)
       return "\\\\" .. M.normpath(filename:sub(3))
     end
     filename = filename:gsub("/", "\\")
+  else
+    filename = filename:gsub("\\", "/")
   end
 
   local num_subs = 0
