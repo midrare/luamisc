@@ -1,24 +1,42 @@
 local M = {}
 
+local function get_cwd()
+  local cwd = nil
+
+  if vim and vim.loop then
+    cwd = vim.loop.cwd()
+  else
+    local pwd_cmd = (package.config:sub(1, 1) == "/" and "pwd") or "echo %cd%"
+    local pipe = io.popen(pwd_cmd)
+    cwd = pipe and pipe:read("*l")
+    if pipe then
+      pipe:close()
+    end
+  end
+
+  local cwd_, _ = cwd
+    :gsub("[\\/]+[%s\r\n]*$", "")
+    :gsub("[\\/]+", "/")
+
+  return cwd_
+end
+
 local function get_script_dir(source)
   source = source or debug.getinfo(1).source
   local script = source:gsub("^@", ""):gsub("[\\/]", "/")
-  if script:match("^[a-zA-Z]:[\\/]") then
-    return "" .. script:gsub("[\\/]+[^\\/]*$", "")
-  end
-  local pwd_cmd = package.config:sub(1, 1) == "/" and "pwd" or "echo %cd%"
-  local pipe = io.popen(pwd_cmd)
-  local cwd = pipe and pipe:read("*l"):gsub("[\\/]+$", ""):gsub("[\\/]", "/")
-  if pipe then
-    pipe:close()
-  end
+  local script_dir = script:gsub("[\\/]+[^\\/]*$", "")
 
-  local dir = cwd or "."
-  if script:match("[\\/][^\\/]+$") then
-    dir = dir .. "/" .. script:gsub("[\\/]+[^\\/]*$", "")
+  if script_dir:match("^[a-zA-Z]:[\\/]") then
+    -- absolute win path
+    return "" .. script_dir
+  elseif script_dir:match("^[\\/]") then
+    -- absolute unix path
+    return "" .. script_dir
+  else
+    -- relative path; must prepend cwd
+    local cwd = get_cwd() or "."
+    return cwd .. "/" .. script_dir
   end
-
-  return dir
 end
 
 local utf8 = utf8 or nil
