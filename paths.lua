@@ -29,15 +29,31 @@ function M.basename(filename)
   return bname
 end
 
----@param filename string file path
+---@param path string file path
 ---@return string? dir parent directory of path
 ---@nodiscard
-function M.dirname(filename)
-  local parent_dir = filename:match("^(.*[\\/]).+$")
-  if not parent_dir or #parent_dir <= 0 then
-    return nil
+function M.dirname(path)
+  local last = nil
+  local trailing = true
+
+  for i = #path, 1, -1 do
+    local ch = path:sub(i, i)
+    local ch_is_sep = ch == "/" or ch == "\\"
+    trailing = trailing and ch_is_sep
+
+    if not trailing then
+      last = i
+      if not ch_is_sep then
+        break
+      end
+    end
   end
-  return parent_dir:match("^(.+)[\\/]+$") or parent_dir
+
+  if last == nil then
+    return path
+  end
+
+  return path:sub(1, last)
 end
 
 ---@param filename string file path
@@ -50,6 +66,21 @@ function M.filestem(filename)
     return nil
   end
   return stem
+end
+
+---@param path string a file or dir path
+---@return string[] parents all parent directories
+function M.parents(path)
+  local parents = {}
+
+  local path_ = path
+  while path_ and #path_ > 0 do
+    local parent = M.dirname(path_)
+    table.insert(parents, parent)
+    path_ = parent
+  end
+
+  return parents
 end
 
 ---@param filename string file path
