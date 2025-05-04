@@ -135,6 +135,23 @@ function TestPathUtils:test_dirname()
     luaunit.assertEquals(paths.dirname('foo/bar\\baz.txt'), 'foo/bar')
 end
 
+function TestPathUtils:test_filestem()
+    luaunit.assertEquals(paths.filestem('name'), 'name')
+    luaunit.assertEquals(paths.filestem('name.txt'), 'name')
+    luaunit.assertEquals(paths.filestem('my.file.name.ext'), 'my.file.name')
+
+    luaunit.assertEquals(paths.filestem('./name.txt'), 'name')
+    luaunit.assertEquals(paths.filestem('.\\name.txt'), 'name')
+
+    luaunit.assertEquals(paths.filestem('/name.txt'), 'name')
+    luaunit.assertEquals(paths.filestem('/foo/name.txt'), 'name')
+    luaunit.assertEquals(paths.filestem('/foo/bar/name.txt'), 'name')
+
+    luaunit.assertEquals(paths.filestem('C:\\name.txt'), 'name')
+    luaunit.assertEquals(paths.filestem('C:\\foo\\name.txt'), 'name')
+    luaunit.assertEquals(paths.filestem('C:\\foo\\bar\\name.txt'), 'name')
+end
+
 local ret = luaunit.LuaUnit.run()
 if not vim or not vim.fn then
   os.exit(ret)
