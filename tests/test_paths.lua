@@ -179,6 +179,11 @@ function TestPathUtils:test_parents()
     luaunit.assertEquals(paths.parents('C:/a\\b/c/'), {'C:/a\\b', 'C:/a', 'C:/'})
 end
 
+function TestPathUtils:test_fileext()
+    luaunit.assertEquals(paths.fileext('/foo/bar/baz.txt'), '.txt')
+    luaunit.assertNil(paths.fileext('/foo/bar/baz'))
+end
+
 local ret = luaunit.LuaUnit.run()
 if not vim or not vim.fn then
   os.exit(ret)

@@ -86,11 +86,12 @@ end
 ---@return string? file extension if any
 ---@nodiscard
 function M.fileext(filename)
-  local basename = filename:match("^.+[\\/](.+)$") or filename
-  local ext = basename:match("^.+(%.[^%s]+)$")
+  local basename = M.basename(filename)
+  local ext, _ = basename:match("[^%.\\/](%.[^%s%.\\/]+)$")
   if not ext or #ext <= 0 then
     return nil
   end
+  return ext
 end
 
 ---@param filename string file path
