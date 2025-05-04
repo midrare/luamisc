@@ -186,19 +186,55 @@ function M.canonical(filename, cwd)
 end
 
 ---@vararg string file path segments
----@return string filepath file path joined using os-specific path separator
+---@return string path file path joined using os-specific path separator
 ---@nodiscard
 function M.join(...)
-  local sep = M.sep()
   local joined = ""
 
   for i = 1, select("#", ...) do
-    local el = select(i, ...):gsub("[\\/]+$", "")
+    local el = select(i, ...)
+
     if el and #el > 0 then
       if #joined > 0 then
-        joined = joined .. sep
+        local sep = nil
+
+        -- find path sep scanning backwards from current element
+        if not sep and i > 1 then
+          for j = (i - 1), 1, -1 do
+            local s = select(j, ...)
+
+            for q = #s, 1, -1 do
+              local ch = s:sub(q, q)
+              if ch == "\\" or ch == "/" then
+                sep = ch
+                break
+              end
+            end
+
+            if sep then
+              break
+            end
+          end
+        end
+
+        -- find path sep scanning forward from current element
+        if not sep then
+          for j = i, select('#', ...) do
+            local s = select(j, ...)
+            local q, p = s:find("[\\/]")
+            if q and p then
+              sep = s:sub(q, p)
+              break
+            end
+          end
+        end
+
+        joined = joined .. (sep or path_sep)
       end
-      joined = joined .. el
+      if #joined > 0 then
+        el = el:gsub("^[\\/]+", "")
+      end
+      joined = joined .. el:gsub("[\\/]+$", "")
     end
   end
 

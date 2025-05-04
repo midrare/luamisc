@@ -198,6 +198,28 @@ function TestPathUtils:test_abspath()
     luaunit.assertEquals(paths.abspath('c/foo.txt', '/a/b'), '/a/b/c/foo.txt')
 end
 
+function TestPathUtils:test_join()
+    luaunit.assertEquals(paths.join('/a', 'b/', '/c'), '/a/b/c')
+    luaunit.assertEquals(paths.join('C:/a', 'b/', '/c'), 'C:/a/b/c')
+    luaunit.assertEquals(paths.join('C:/a', 'b\\', '/c'), 'C:/a/b\\c')
+    luaunit.assertStrMatches(paths.join('a', '', 'b'), 'a[\\/]b')
+end
+
+function TestPathUtils:test_relpath()
+    luaunit.assertEquals(
+      paths.relpath('/home/user/file.txt', '/home/user', false),
+      'file.txt'
+    )
+    luaunit.assertEquals(
+      paths.relpath('/home/user/file.txt', '/home/user/project', false),
+      '../file.txt'
+    )
+    luaunit.assertEquals(
+      paths.relpath('/home/user/other/file.txt', '/home/user/project', false),
+      '../other/file.txt'
+    )
+end
+
 local ret = luaunit.LuaUnit.run()
 if not vim or not vim.fn then
   os.exit(ret)
