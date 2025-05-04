@@ -38,31 +38,18 @@ end
 ---@return string dir parent directory of path
 ---@nodiscard
 function M.dirname(path)
-  if path:match("^%a:[\\/]+$") or path:match("^%.*[\\/]+$") then
+  if path:match("^%a:[\\/]+$") or path:match("^%.*[\\/]*$") then
     return path
   end
 
-  local last = nil
-  local trailing = true
+  local dir_, _ = path:gsub("[\\/]+$", ""):gsub("[^\\/]+$", "")
 
-  for i = #path, 1, -1 do
-    local ch = path:sub(i, i)
-    local ch_is_sep = ch == "/" or ch == "\\"
-    trailing = trailing and ch_is_sep
-
-    if not trailing then
-      last = i
-      if not ch_is_sep then
-        break
-      end
-    end
+  if dir_:match("^%a:[\\/]+$") or dir_:match("^%.*[\\/]*$") then
+    return dir_
   end
 
-  if last == nil then
-    return ""
-  end
-
-  return path:sub(1, last)
+  dir_, _ =  dir_:gsub("[\\/]+$", "")
+  return dir_
 end
 
 ---@param filename string file path
