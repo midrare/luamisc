@@ -194,6 +194,9 @@ function TestPathUtils:test_isabs()
     luaunit.assertFalse(paths.isabs('usr/bin'))
 end
 
+function TestPathUtils:test_abspath()
+    luaunit.assertEquals(paths.abspath('c/foo.txt', '/a/b'), '/a/b/c/foo.txt')
+end
 
 local ret = luaunit.LuaUnit.run()
 if not vim or not vim.fn then

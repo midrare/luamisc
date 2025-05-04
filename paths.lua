@@ -157,17 +157,18 @@ function M.isabs(path)
   return m ~= nil
 end
 
----@param filename string file path
+---@param path string file path
 ---@param cwd? string current directory
----@return string filename absolute file path
+---@return string absp absolute file path
 ---@nodiscard
-function M.abspath(filename, cwd)
+function M.abspath(path, cwd)
   cwd = cwd or get_cwd()
-  filename = filename:gsub("[\\/]+$", "")
-  if not M.isabs(filename) then
-    filename = cwd:gsub("[\\/]+$", "") .. path_sep .. filename
+  path = path:gsub("[\\/]+$", "")
+  if not M.isabs(path) then
+    local sep = cwd:match("[\\/]") or path:match("[\\/]") or path_sep
+    path = cwd:gsub("[\\/]+$", "") .. sep .. path
   end
-  return M.normpath(filename)
+  return M.normpath(path)
 end
 
 ---@param filename string file path
