@@ -184,6 +184,11 @@ function TestPathUtils:test_fileext()
     luaunit.assertNil(paths.fileext('/foo/bar/baz'))
 end
 
+function TestPathUtils:test_normpath()
+    luaunit.assertEquals(paths.normpath('foo//bar/./baz/../qux'), 'foo/bar/qux')
+    luaunit.assertEquals(paths.normpath(''), '.')
+end
+
 local ret = luaunit.LuaUnit.run()
 if not vim or not vim.fn then
   os.exit(ret)

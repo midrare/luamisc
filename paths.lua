@@ -107,48 +107,46 @@ function M.normcase(filename)
   return p
 end
 
----@param filename string file path
----@return string filepath file path with ".." collapsed
+---@param path string file path
+---@return string norm file path with ".." collapsed
 ---@nodiscard
-function M.normpath(filename)
+function M.normpath(path)
   if is_windows then
-    if filename:match("^\\\\") then -- UNC
-      return "\\\\" .. M.normpath(filename:sub(3))
+    if path:match("^\\\\") then -- UNC
+      return "\\\\" .. M.normpath(path:sub(3))
     end
-    filename = filename:gsub("/", "\\")
-  else
-    filename = filename:gsub("\\", "/")
   end
 
   local num_subs = 0
   repeat
     -- // to /
-    filename, num_subs = filename:gsub("[\\/][\\/]+", path_sep)
+    path, num_subs = path:gsub("([\\/])[\\/]+", "%1")
   until num_subs <= 0
 
   repeat
     -- /./ to /
-    filename, num_subs = filename:gsub("[\\/]%.[\\/]", path_sep)
+    path, num_subs = path:gsub("([\\/])%.[\\/]", "%1")
   until num_subs <= 0
 
   repeat
     -- foo/.. to ""
-    filename, num_subs = filename:gsub("[^\\/]+[\\/]%.%.[\\/]*", "")
+    path, num_subs = path:gsub("[^\\/]+[\\/]%.%.[\\/]*", "")
   until num_subs <= 0
 
-  if filename == "" then
-    filename = "."
+  if path == "" then
+    path = "."
+  end
+
+  path = path:gsub("([\\/])[\\/]+", "%1")
+
+  if path:match("^%a:[\\/]+$") or path:match("^%.*[\\/]+$") then
+    return path
   end
 
   -- foo/bar/ to foo/bar
-  filename = filename:gsub("[\\/]+$", "")
+  path = path:gsub("[\\/]+$", "")
 
-  -- C: to C:\
-  if is_windows and filename:match("^[^\\/]+:$") then
-    filename = filename .. "\\"
-  end
-
-  return filename
+  return path
 end
 
 ---@param filename string file path
