@@ -35,9 +35,13 @@ function M.basename(path)
 end
 
 ---@param path string file path
----@return string? dir parent directory of path
+---@return string dir parent directory of path
 ---@nodiscard
 function M.dirname(path)
+  if path:match("^%a:[\\/]+$") or path:match("^%.*[\\/]+$") then
+    return path
+  end
+
   local last = nil
   local trailing = true
 
@@ -55,7 +59,7 @@ function M.dirname(path)
   end
 
   if last == nil then
-    return path
+    return ""
   end
 
   return path:sub(1, last)

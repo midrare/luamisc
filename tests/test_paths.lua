@@ -80,6 +80,61 @@ function TestPathUtils:test_basename()
     luaunit.assertEquals(paths.basename('foo/bar\\baz.txt'), 'baz.txt')
 end
 
+function TestPathUtils:test_dirname()
+    luaunit.assertEquals(paths.dirname('.'), '.')
+    luaunit.assertEquals(paths.dirname('..'), '..')
+    luaunit.assertEquals(paths.dirname('./'), './')
+    luaunit.assertEquals(paths.dirname('.\\'), '.\\')
+    luaunit.assertEquals(paths.dirname('/'), '/')
+    luaunit.assertEquals(paths.dirname('\\'), '\\')
+    luaunit.assertEquals(paths.dirname('C:/'), 'C:/')
+    luaunit.assertEquals(paths.dirname('C:\\'), 'C:\\')
+
+    luaunit.assertEquals(paths.dirname('foo.txt'), '')
+    luaunit.assertEquals(paths.dirname('./foo.txt'), './')
+    luaunit.assertEquals(paths.dirname('.\\foo.txt'), '.\\')
+
+    luaunit.assertEquals(paths.dirname('/foo.txt'), '/')
+    luaunit.assertEquals(paths.dirname('\\foo.txt'), '\\')
+    luaunit.assertEquals(paths.dirname('C:/foo.txt'), 'C:/')
+    luaunit.assertEquals(paths.dirname('C:\\foo.txt'), 'C:\\')
+
+    luaunit.assertEquals(paths.dirname('/foo/'), '/')
+    luaunit.assertEquals(paths.dirname('\\foo\\'), '\\')
+    luaunit.assertEquals(paths.dirname('\\foo/'), '\\')
+    luaunit.assertEquals(paths.dirname('C:/foo/'), 'C:/')
+    luaunit.assertEquals(paths.dirname('C:\\foo\\'), 'C:\\')
+    luaunit.assertEquals(paths.dirname('C:/foo\\'), 'C:/')
+
+    luaunit.assertEquals(paths.dirname('/foo/bar/'), '/foo')
+    luaunit.assertEquals(paths.dirname('\\foo\\bar\\'), 'bar')
+    luaunit.assertEquals(paths.dirname('\\foo/bar\\'), 'bar')
+    luaunit.assertEquals(paths.dirname('C:/foo/bar/'), 'bar')
+    luaunit.assertEquals(paths.dirname('C:\\foo\\bar\\'), 'bar')
+    luaunit.assertEquals(paths.dirname('C:/foo\\bar/'), 'bar')
+
+    luaunit.assertEquals(paths.dirname('/foo/bar/baz.txt'), 'bar')
+    luaunit.assertEquals(paths.dirname('\\foo\\bar\\baz.txt'), 'bar')
+    luaunit.assertEquals(paths.dirname('/foo\\bar/baz.txt'), 'bar')
+    luaunit.assertEquals(paths.dirname('C:/foo/bar/baz.txt'), 'bar')
+    luaunit.assertEquals(paths.dirname('C:\\foo\\bar\\baz.txt'), 'bar')
+    luaunit.assertEquals(paths.dirname('C:\\foo/bar\\baz.txt'), 'bar')
+
+    luaunit.assertEquals(paths.dirname('foo/bar/'), '/foo')
+    luaunit.assertEquals(paths.dirname('foo\\bar\\'), 'bar')
+    luaunit.assertEquals(paths.dirname('foo/bar\\'), 'bar')
+    luaunit.assertEquals(paths.dirname('foo/bar/'), 'bar')
+    luaunit.assertEquals(paths.dirname('foo\\bar\\'), 'bar')
+    luaunit.assertEquals(paths.dirname('foo\\bar/'), 'bar')
+
+    luaunit.assertEquals(paths.dirname('foo/bar/baz.txt'), 'bar')
+    luaunit.assertEquals(paths.dirname('foo\\bar\\baz.txt'), 'bar')
+    luaunit.assertEquals(paths.dirname('foo\\bar/baz.txt'), 'bar')
+    luaunit.assertEquals(paths.dirname('foo/bar/baz.txt'), 'bar')
+    luaunit.assertEquals(paths.dirname('foo\\bar\\baz.txt'), 'bar')
+    luaunit.assertEquals(paths.dirname('foo/bar\\baz.txt'), 'bar')
+end
+
 local ret = luaunit.LuaUnit.run()
 if not vim or not vim.fn then
   os.exit(ret)
