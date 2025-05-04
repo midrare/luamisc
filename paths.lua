@@ -56,7 +56,7 @@ end
 ---@return string? stem base name without file extension
 ---@nodiscard
 function M.filestem(filename)
-  local basename = filename:match("^.+[\\/](.+)$") or filename
+  local basename = M.basename(filename)
   local stem = basename:gsub("^(.+)%.[^%s]+$", "%1")
   if not stem or #stem <= 0 then
     return nil
@@ -72,6 +72,9 @@ function M.parents(path)
   local path_ = path
   while path_ and #path_ > 0 do
     local parent = M.dirname(path_)
+    if not parent or parent == path_ or #parent <= 0 then
+      break
+    end
     table.insert(parents, parent)
     path_ = parent
   end

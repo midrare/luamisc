@@ -152,6 +152,33 @@ function TestPathUtils:test_filestem()
     luaunit.assertEquals(paths.filestem('C:\\foo\\bar\\name.txt'), 'name')
 end
 
+function TestPathUtils:test_parents()
+    luaunit.assertEquals(paths.parents(''), {})
+    luaunit.assertEquals(paths.parents('/'), {})
+    luaunit.assertEquals(paths.parents('\\'), {})
+    luaunit.assertEquals(paths.parents('C:/'), {})
+    luaunit.assertEquals(paths.parents('C:\\'), {})
+
+    luaunit.assertEquals(paths.parents('a.txt'), {})
+    luaunit.assertEquals(paths.parents('a'), {})
+    luaunit.assertEquals(paths.parents('./a.txt'), {'./'})
+    luaunit.assertEquals(paths.parents('./a'), {'./'})
+
+    luaunit.assertEquals(paths.parents('/a/b/c.txt'), {'/a/b', '/a', '/'})
+    luaunit.assertEquals(paths.parents('/a/b/c'), {'/a/b', '/a', '/'})
+    luaunit.assertEquals(paths.parents('/a/b/c/'), {'/a/b', '/a', '/'})
+    luaunit.assertEquals(paths.parents('C:/a/b/c.o'), {'C:/a/b', 'C:/a', 'C:/'})
+    luaunit.assertEquals(paths.parents('C:/a/b/c'), {'C:/a/b', 'C:/a', 'C:/'})
+    luaunit.assertEquals(paths.parents('C:/a/b/c/'), {'C:/a/b', 'C:/a', 'C:/'})
+
+    luaunit.assertEquals(paths.parents('/a\\b/c.txt'), {'/a\\b', '/a', '/'})
+    luaunit.assertEquals(paths.parents('/a\\b/c'), {'/a\\b', '/a', '/'})
+    luaunit.assertEquals(paths.parents('/a\\b/c/'), {'/a\\b', '/a', '/'})
+    luaunit.assertEquals(paths.parents('C:/a\\b/c.o'), {'C:/a\\b', 'C:/a', 'C:/'})
+    luaunit.assertEquals(paths.parents('C:/a\\b/c'), {'C:/a\\b', 'C:/a', 'C:/'})
+    luaunit.assertEquals(paths.parents('C:/a\\b/c/'), {'C:/a\\b', 'C:/a', 'C:/'})
+end
+
 local ret = luaunit.LuaUnit.run()
 if not vim or not vim.fn then
   os.exit(ret)
