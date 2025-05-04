@@ -189,6 +189,12 @@ function TestPathUtils:test_normpath()
     luaunit.assertEquals(paths.normpath(''), '.')
 end
 
+function TestPathUtils:test_isabs()
+    luaunit.assertTrue(paths.isabs('/usr/bin'))
+    luaunit.assertFalse(paths.isabs('usr/bin'))
+end
+
+
 local ret = luaunit.LuaUnit.run()
 if not vim or not vim.fn then
   os.exit(ret)

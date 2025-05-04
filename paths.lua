@@ -149,11 +149,12 @@ function M.normpath(path)
   return path
 end
 
----@param filename string file path
+---@param path string file path
 ---@return boolean is_abs if file path is an absolute path
 ---@nodiscard
-function M.isabs(filename)
-  return filename:match("^[\\/]") or filename:match("^[a-zA-Z]:[\\/]")
+function M.isabs(path)
+  local m = path:match("^[\\/]") or path:match("^%a:[\\/]")
+  return m ~= nil
 end
 
 ---@param filename string file path
