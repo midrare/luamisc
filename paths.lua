@@ -21,11 +21,16 @@ function M.sep()
   return path_sep
 end
 
----@param filename string file path
+---@param path string file path
 ---@return string basename last component of file path
 ---@nodiscard
-function M.basename(filename)
-  local bname, _ = filename:gsub("^.*[\\/](.+)[\\/]*", "%1")
+function M.basename(path)
+  if path:match("^%a:[\\/]+$") or path:match("^%.*[\\/]+$") then
+    return path
+  end
+
+  local path_ = path:gsub("[\\/]+$", "")
+  local bname, _ = path_:gsub("^.*[\\/](.+)", "%1")
   return bname
 end
 
