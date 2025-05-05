@@ -9,10 +9,20 @@ end
 
 local function split_path(s)
   local parts = {}
-  s:gsub("[^\\/]+", function(e)
-    table.insert(parts, e)
+  local seps = {}
+
+  local m = s:match("^[\\/]+")
+  if m then
+    table.insert(parts, "")
+    table.insert(seps, m)
+  end
+
+  s:gsub("([^\\/]+)([\\/]*)", function(a, b)
+    table.insert(parts, a)
+    table.insert(seps, b)
   end)
-  return parts
+
+  return parts, seps
 end
 
 ---@return string sep os-specific path separator
@@ -241,43 +251,68 @@ function M.join(...)
   return joined
 end
 
----@param filename string file path to make relative
+---@param path string file path to make relative
 ---@param origin? string dir to make relative against
----@param inscase? boolean true if ignore case
----@return string relpath
-function M.relpath(filename, origin, inscase)
-  if inscase == nil then
-    inscase = is_windows
+---@param icase? boolean true if ignore case
+---@return string relpath relative path
+function M.relpath(path, origin, icase)
+  if icase == nil then
+    icase = is_windows
   end
   origin = origin or get_cwd()
   origin = M.normcase(origin)
-  filename = M.abspath(filename, origin)
+  path = M.abspath(path, origin)
 
-  local origin_segs = split_path(origin)
-  local path_segs = split_path(filename)
+  local origin_parts, origin_seps = split_path(origin)
+  local path_parts, path_seps = split_path(path)
 
-  local mismatch_idx = math.min(#origin_segs, #path_segs) + 1
-  for i = 1, math.min(#origin_segs, #path_segs) do
+  local mismatch_idx = math.min(#origin_parts, #path_parts) + 1
+  for i = 1, math.min(#origin_parts, #path_parts) do
     if
-      (not inscase and origin_segs[i] ~= path_segs[i])
-      or (inscase and origin_segs[i]:lower() ~= path_segs[i]:lower())
+      (not icase and origin_parts[i] ~= path_parts[i])
+      or (icase and origin_parts[i]:lower() ~= path_parts[i]:lower())
     then
       mismatch_idx = i
       break
     end
   end
 
-  local components = {}
+  local sep = nil
+  if not sep then
+    for i = 1, #path_seps do
+      if #path_seps[i] > 0 then
+        sep = path_seps[i]
+        break
+      end
+    end
+  end
+  if not sep then
+    for i = #origin_seps, 1, -1 do
+      if #origin_seps[i] > 0 then
+        sep = origin_seps[i]
+        break
+      end
+    end
+  end
+  sep = sep or path_sep
+
+  local joined = ""
   ---@diagnostic disable-next-line: unused-local
-  for i = 1, #origin_segs - mismatch_idx + 1 do
-    table.insert(components, "..")
+  for i = 1, #origin_parts - mismatch_idx + 1 do
+    if #joined > 0 then
+      joined = joined .. sep
+    end
+    joined = joined .. ".."
   end
 
-  for i = mismatch_idx, #path_segs do
-    table.insert(components, path_segs[i])
+  for i = mismatch_idx, #path_parts do
+    if #joined > 0 then
+      joined = joined .. (path_seps[i-1] or sep)
+    end
+    joined = joined .. path_parts[i]
   end
 
-  return table.concat(components, path_sep)
+  return joined
 end
 
 ---@param ext string? file extension
