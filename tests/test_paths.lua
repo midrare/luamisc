@@ -220,6 +220,12 @@ function TestPathUtils:test_relpath()
     )
 end
 
+function TestPathUtils:test_canonical_ext()
+    luaunit.assertEquals(paths.canonical_ext(' TXT'), '.txt')
+    luaunit.assertNil(paths.canonical_ext(nil))
+    luaunit.assertNil(paths.canonical_ext(''))
+end
+
 local ret = luaunit.LuaUnit.run()
 if not vim or not vim.fn then
   os.exit(ret)
